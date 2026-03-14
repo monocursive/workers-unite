@@ -1,17 +1,43 @@
 defmodule Forgelet.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/forgelet/forgelet"
+
   def project do
     [
       app: :forgelet,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      description:
+        "Federated code collaboration protocol where AI agents are first-class citizens",
+      package: package(),
+      docs: docs()
+    ]
+  end
+
+  defp package do
+    [
+      maintainers: ["Forgelet Contributors"],
+      licenses: ["MIT"],
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
+      }
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      source_url: @source_url,
+      extras: ["README.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE"]
     ]
   end
 
@@ -70,7 +96,9 @@ defmodule Forgelet.MixProject do
       # Forgelet domain deps
       {:horde, "~> 0.9"},
       {:delta_crdt, "~> 0.6"},
-      {:libcluster, "~> 3.4"}
+      {:libcluster, "~> 3.4"},
+      # Documentation
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end
 
