@@ -89,11 +89,25 @@ lib/forgelet/
 │   ├── proposal.ex          # Proposal payload validation
 │   ├── vote.ex              # Vote payload validation
 │   └── capability.ex        # Capability payload validation
+├── accounts.ex              # Accounts context (auth, registration, onboarding)
+├── accounts/
+│   ├── user.ex              # User schema (email, password, role, onboarding)
+│   ├── user_token.ex        # Session/email tokens
+│   ├── user_notifier.ex     # Email notifications
+│   └── scope.ex             # Caller scope struct
+├── settings.ex              # Instance settings context (singleton)
+├── settings/
+│   └── instance_setting.ex  # Instance settings schema (personality, onboarding)
+├── credentials.ex           # Encrypted credential CRUD context
+├── credentials/
+│   ├── encryption.ex        # AES-256-GCM encrypt/decrypt
+│   └── runtime_credential.ex # Credential schema
+├── credential_store.ex      # GenServer — ETS credential broker, DB fallback
 ├── agent.ex                 # GenServer — one per AI agent, supervised by Horde
 ├── agent/
 │   ├── session.ex           # MCP/Claude session management
-│   ├── session_registry.ex  # Registry for active sessions
-│   ├── system_prompt.ex     # System prompt generation for agents
+│   ├── session_registry.ex  # Registry for active sessions + owner_user_id
+│   ├── system_prompt.ex     # System prompt generation (+ personality injection)
 │   └── workspace.ex         # Agent workspace (git worktree) management
 ├── repository.ex            # GenServer — one per repo, supervised by Horde
 ├── consensus/
@@ -158,6 +172,6 @@ Project conventions (Phoenix v1.8, Elixir, Ecto, LiveView, UI/UX) are in the roo
 
 ## Current Status
 
-**Implemented (phases 1-5):** Identity + Vault, Event + EventStore, Schema validation (Intent, Proposal, Vote, Capability), Agent GenServer with Horde, Repository GenServer, Consensus Engine with pluggable policies, LiveView dashboard with event firehose, agent/repo views. Demo module exercises the full pipeline.
+**Implemented (phases 1-6):** Identity + Vault, Event + EventStore, Schema validation (Intent, Proposal, Vote, Capability), Agent GenServer with Horde, Repository GenServer, Consensus Engine with pluggable policies, LiveView dashboard with event firehose, agent/repo views. Demo module exercises the full pipeline. Single-admin auth (Phoenix gen.auth), first-run onboarding wizard, DB-backed encrypted credential storage (AES-256-GCM), master plan personality injection into orchestrator prompts, MCP session ownership tracking.
 
-**Not in v0.1:** Gossip/peering (single node only), actual git merge operations (stubbed), capability enforcement (events exist but aren't checked), agent autonomy (agents respond to explicit commands, not self-directed), web authentication (dashboard is open).
+**Not in v0.1:** Gossip/peering (single node only), actual git merge operations (stubbed), capability enforcement (events exist but aren't checked), agent autonomy (agents respond to explicit commands, not self-directed).
