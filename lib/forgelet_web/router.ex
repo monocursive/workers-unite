@@ -1,4 +1,6 @@
 defmodule ForgeletWeb.Router do
+  @moduledoc false
+
   use ForgeletWeb, :router
 
   import ForgeletWeb.UserAuth
@@ -21,6 +23,13 @@ defmodule ForgeletWeb.Router do
     pipe_through :api
 
     post "/:token", Plug, []
+  end
+
+  # Unauthenticated health check for load balancers and container orchestrators
+  scope "/", ForgeletWeb do
+    pipe_through :api
+
+    get "/health", HealthController, :show
   end
 
   # Registration (redirect if already authenticated)

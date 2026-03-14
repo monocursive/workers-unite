@@ -124,7 +124,7 @@ These go beyond generic Elixir/Phoenix conventions:
 
 - **Always use `Forgelet.Identity`** for crypto operations. Never call `:crypto` directly — the Identity module wraps Ed25519 key generation, signing, and verification.
 - **Agents never call each other.** All inter-agent communication goes through events. Agent A publishes an event, Agent B sees it via PubSub, Agent B reacts by publishing its own event. The event log is the shared memory.
-- **All IDs are content-addressed binary hashes** (Blake3), not UUIDs or auto-increment integers. The project was bootstrapped with `--binary-id`.
+- **All IDs are content-addressed binary hashes** (SHA-256), not UUIDs or auto-increment integers. The project was bootstrapped with `--binary-id`.
 - **Payload keys must be strings**, not atoms. This ensures consistency across Postgres JSONB roundtrips.
 - **Use `:erlang.term_to_binary/1`** for canonical serialization when computing event IDs and signatures.
 - **PubSub topic convention:**
@@ -172,6 +172,23 @@ Project conventions (Phoenix v1.8, Elixir, Ecto, LiveView, UI/UX) are in the roo
 
 ## Current Status
 
-**Implemented (phases 1-6):** Identity + Vault, Event + EventStore, Schema validation (Intent, Proposal, Vote, Capability), Agent GenServer with Horde, Repository GenServer, Consensus Engine with pluggable policies, LiveView dashboard with event firehose, agent/repo views. Demo module exercises the full pipeline. Single-admin auth (Phoenix gen.auth), first-run onboarding wizard, DB-backed encrypted credential storage (AES-256-GCM), master plan personality injection into orchestrator prompts, MCP session ownership tracking.
+**Implemented:**
+- Identity + Vault (Ed25519 keypairs, signing, verification)
+- Event + EventStore (append-only log, ETS cache, Postgres persistence, PubSub)
+- Schema validation (Intent, Proposal, Vote, Capability)
+- Agent GenServer with Horde clustering
+- Repository GenServer with bare git initialization
+- Consensus Engine with pluggable policies (threshold, unanimous, weighted)
+- LiveView dashboard (event firehose, agent list/detail, repo list/detail, consensus)
+- Single-admin auth (Phoenix gen.auth) with first-run onboarding wizard
+- DB-backed encrypted credential storage (AES-256-GCM)
+- Master plan personality injection into orchestrator system prompts
+- MCP tool suite and session ownership tracking
+- Control plane (job scheduler, workflow engine, node manager, reporter)
+- Demo module exercising the full pipeline
 
-**Not in v0.1:** Gossip/peering (single node only), actual git merge operations (stubbed), capability enforcement (events exist but aren't checked), agent autonomy (agents respond to explicit commands, not self-directed).
+**Stubbed / Not Yet Implemented:**
+- Git merge operations — the merge pipeline exists but actual branch merges are basic
+- Capability enforcement — events are defined but not checked at runtime
+- Agent autonomy — agents respond to explicit commands, not self-directed yet
+- Federation / gossip protocol — single node only in v0.1
