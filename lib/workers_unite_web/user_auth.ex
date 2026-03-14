@@ -26,6 +26,17 @@ defmodule WorkersUniteWeb.UserAuth do
   @session_reissue_age_in_days 7
 
   @doc """
+  Establishes a user session without redirecting.
+
+  Sets session token, optionally writes remember-me cookie.
+  Meant to be called directly by JSON passkey endpoints that need
+  to establish a session and return a JSON response.
+  """
+  def establish_user_session(conn, user, params \\ %{}) do
+    create_or_extend_session(conn, user, params)
+  end
+
+  @doc """
   Logs the user in.
 
   Redirects to the session's `:user_return_to` path
@@ -155,6 +166,20 @@ defmodule WorkersUniteWeb.UserAuth do
   end
 
   @doc """
+  Plug for JSON routes that require an authenticated session but not completed onboarding.
+  """
+  def require_session_user(conn, _opts) do
+    if conn.assigns.current_scope && conn.assigns.current_scope.user do
+      conn
+    else
+      conn
+      |> put_status(:unauthorized)
+      |> json(%{error: "unauthorized"})
+      |> halt()
+    end
+  end
+
+  @doc """
   Plug for routes that require the user to not be authenticated.
   Redirects to onboarding on fresh instances (no users yet).
   """
@@ -277,6 +302,27 @@ defmodule WorkersUniteWeb.UserAuth do
          socket
          |> Phoenix.LiveView.put_flash(:error, "You must log in to continue onboarding.")
          |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")}
+    end
+  end
+
+  def on_mount(:ensure_sudo, _params, session, socket) do
+    socket = mount_current_scope(socket, session)
+
+    cond do
+      is_nil(socket.assigns.current_scope) ->
+        {:halt,
+         socket
+         |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
+         |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")}
+
+      not Accounts.sudo_mode?(socket.assigns.current_scope.user, -10) ->
+        {:halt,
+         socket
+         |> Phoenix.LiveView.put_flash(:error, "You must re-authenticate to access this page.")
+         |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")}
+
+      true ->
+        {:cont, socket}
     end
   end
 

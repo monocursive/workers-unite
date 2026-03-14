@@ -240,6 +240,30 @@ defmodule WorkersUniteWeb.UserAuthTest do
     end
   end
 
+  describe "require_session_user/2" do
+    setup %{conn: conn} do
+      %{conn: UserAuth.fetch_current_scope_for_user(conn, [])}
+    end
+
+    test "allows authenticated users", %{conn: conn, user: user} do
+      conn =
+        conn
+        |> assign(:current_scope, Scope.for_user(user))
+        |> UserAuth.require_session_user([])
+
+      refute conn.halted
+      refute conn.status
+    end
+
+    test "returns unauthorized json for unauthenticated users", %{conn: conn} do
+      conn = UserAuth.require_session_user(conn, [])
+
+      assert conn.halted
+      assert conn.status == 401
+      assert Jason.decode!(conn.resp_body) == %{"error" => "unauthorized"}
+    end
+  end
+
   describe "require_authenticated_user/2" do
     setup %{conn: conn} do
       %{conn: UserAuth.fetch_current_scope_for_user(conn, [])}

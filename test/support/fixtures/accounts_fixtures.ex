@@ -30,15 +30,10 @@ defmodule WorkersUnite.AccountsFixtures do
   def user_fixture(attrs \\ %{}) do
     user = unconfirmed_user_fixture(attrs)
 
-    token =
-      extract_user_token(fn url ->
-        Accounts.deliver_login_instructions(user, url)
-      end)
-
-    {:ok, {user, _expired_tokens}} =
-      Accounts.login_user_by_magic_link(token)
-
+    # Directly confirm the user instead of going through magic link
     user
+    |> Accounts.User.confirm_changeset()
+    |> WorkersUnite.Repo.update!()
   end
 
   def onboarded_user_fixture(attrs \\ %{}) do
@@ -84,12 +79,6 @@ defmodule WorkersUnite.AccountsFixtures do
     )
   end
 
-  def generate_user_magic_link_token(user) do
-    {encoded_token, user_token} = Accounts.UserToken.build_email_token(user, "login")
-    WorkersUnite.Repo.insert!(user_token)
-    {encoded_token, user_token.token}
-  end
-
   def offset_user_token(token, amount_to_add, unit) do
     dt = DateTime.add(DateTime.utc_now(:second), amount_to_add, unit)
 
@@ -97,5 +86,36 @@ defmodule WorkersUnite.AccountsFixtures do
       from(ut in Accounts.UserToken, where: ut.token == ^token),
       set: [inserted_at: dt, authenticated_at: dt]
     )
+  end
+
+  @doc """
+  Creates a WebauthnCredential directly in the DB for the given user.
+
+  Useful for testing credential listing, renaming, deletion, and
+  passkey-related UI without going through the full WebAuthn registration flow.
+  """
+  def webauthn_credential_fixture(user, attrs \\ %{}) do
+    defaults = %{
+      credential_id: :crypto.strong_rand_bytes(32),
+      public_key:
+        :erlang.term_to_binary(%{
+          1 => 2,
+          3 => -7,
+          -1 => 1,
+          -2 => :crypto.strong_rand_bytes(32),
+          -3 => :crypto.strong_rand_bytes(32)
+        }),
+      sign_count: 0,
+      transports: ["internal"],
+      friendly_name: "Test Passkey",
+      user_id: user.id
+    }
+
+    {:ok, credential} =
+      %WorkersUnite.Accounts.WebauthnCredential{}
+      |> WorkersUnite.Accounts.WebauthnCredential.changeset(Map.merge(defaults, attrs))
+      |> WorkersUnite.Repo.insert()
+
+    credential
   end
 end

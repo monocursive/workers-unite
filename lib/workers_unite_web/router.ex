@@ -15,6 +15,14 @@ defmodule WorkersUniteWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
+  pipeline :browser_json do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug :put_secure_browser_headers
+    plug :protect_from_forgery
+    plug :fetch_current_scope_for_user
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
@@ -32,9 +40,33 @@ defmodule WorkersUniteWeb.Router do
     get "/health", HealthController, :show
   end
 
-  # Registration (redirect if already authenticated)
+  # Passkey login (unauthenticated JSON endpoints)
+  scope "/users", WorkersUniteWeb do
+    pipe_through [:browser_json]
+
+    post "/passkey-login/challenge", PasskeyController, :login_challenge
+    post "/passkey-login", PasskeyController, :login
+  end
+
+  # Passkey reauth (authenticated JSON endpoints, onboarding complete)
+  scope "/users", WorkersUniteWeb do
+    pipe_through [:browser_json, :require_authenticated_user]
+
+    post "/passkey-reauth/challenge", PasskeyController, :reauth_challenge
+    post "/passkey-reauth", PasskeyController, :reauth
+  end
+
+  # Passkey registration (authenticated session required, onboarding may be incomplete)
+  scope "/users", WorkersUniteWeb do
+    pipe_through [:browser_json, :require_session_user]
+
+    post "/passkey-register/challenge", PasskeyController, :registration_challenge
+    post "/passkey-register", PasskeyController, :register
+  end
+
+  # Registration redirects to onboarding
   scope "/", WorkersUniteWeb do
-    pipe_through [:browser, :redirect_if_user_is_authenticated]
+    pipe_through [:browser]
 
     get "/users/register", UserRegistrationController, :new
     post "/users/register", UserRegistrationController, :create
@@ -46,9 +78,15 @@ defmodule WorkersUniteWeb.Router do
 
     get "/users/log-in", UserSessionController, :new
     post "/users/log-in", UserSessionController, :create
-    get "/users/log-in/:token", UserSessionController, :confirm
-    get "/users/onboarding-login/:token", UserSessionController, :onboarding_login
     delete "/users/log-out", UserSessionController, :delete
+  end
+
+  # Onboarding session handoff route. It must use the browser pipeline because the
+  # controller needs session and flash support before onboarding is complete.
+  scope "/", WorkersUniteWeb do
+    pipe_through [:browser]
+
+    post "/onboarding/session", OnboardingSessionController, :create
   end
 
   # Onboarding (special auth handling)
@@ -86,6 +124,14 @@ defmodule WorkersUniteWeb.Router do
       live "/settings/model", Settings.ModelLive
       live "/settings/credentials", Settings.CredentialsLive
       live "/settings/personality", Settings.PersonalityLive
+    end
+
+    live_session :passkey_settings,
+      on_mount: [
+        {WorkersUniteWeb.UserAuth, :ensure_authenticated},
+        {WorkersUniteWeb.UserAuth, :ensure_sudo}
+      ] do
+      live "/users/settings/passkeys", Settings.PasskeysLive
     end
   end
 

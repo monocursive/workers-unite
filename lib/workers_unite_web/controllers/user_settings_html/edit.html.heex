@@ -23,6 +23,18 @@
 
   <div class="divider" />
 
+  <div class="flex items-center justify-between">
+    <div>
+      <h3 class="font-semibold">Passkeys</h3>
+      <p class="text-sm text-base-content/60">Manage your passkeys for passwordless login.</p>
+    </div>
+    <.link navigate={~p"/users/settings/passkeys"} class="btn btn-sm btn-primary">
+      Manage Passkeys
+    </.link>
+  </div>
+
+  <div class="divider" />
+
   <.form :let={f} for={@password_changeset} action={~p"/users/settings"} id="update_password">
     <input type="hidden" name="action" value="update_password" />
 

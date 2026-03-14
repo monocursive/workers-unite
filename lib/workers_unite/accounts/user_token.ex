@@ -1,6 +1,6 @@
 defmodule WorkersUnite.Accounts.UserToken do
   @moduledoc """
-  Schema and query builders for session, magic-link, and change-email tokens.
+  Schema and query builders for session and change-email tokens.
   """
 
   use Ecto.Schema
@@ -10,11 +10,9 @@ defmodule WorkersUnite.Accounts.UserToken do
   @hash_algorithm :sha256
   @rand_size 32
 
-  # It is very important to keep the magic link token expiry short,
-  # since someone with access to the email may take over the account.
-  @magic_link_validity_in_minutes 15
   @change_email_validity_in_days 7
   @session_validity_in_days 14
+  @onboarding_session_validity_in_seconds 60
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -72,6 +70,32 @@ defmodule WorkersUnite.Accounts.UserToken do
   end
 
   @doc """
+  Builds a one-time onboarding session token stored hashed in the database.
+  """
+  def build_onboarding_session_token(user) do
+    build_hashed_token(user, "onboarding_session", nil)
+  end
+
+  @doc """
+  Checks if the onboarding session token is valid and returns its lookup query.
+  """
+  def verify_onboarding_session_token_query(token) do
+    case Base.url_decode64(token, padding: false) do
+      {:ok, decoded_token} ->
+        hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
+
+        query =
+          from token in by_token_and_context_query(hashed_token, "onboarding_session"),
+            where: token.inserted_at > ago(@onboarding_session_validity_in_seconds, "second")
+
+        {:ok, query}
+
+      :error ->
+        :error
+    end
+  end
+
+  @doc """
   Builds a token and its hash to be delivered to the user's email.
 
   The non-hashed token is sent to the user email while the
@@ -80,9 +104,6 @@ defmodule WorkersUnite.Accounts.UserToken do
   the token in the application to gain access. Furthermore, if the user changes
   their email in the system, the tokens sent to the previous email are no longer
   valid.
-
-  Users can easily adapt the existing code to provide other types of delivery methods,
-  for example, by phone numbers.
   """
   def build_email_token(user, context) do
     build_hashed_token(user, context, user.email)
@@ -99,34 +120,6 @@ defmodule WorkersUnite.Accounts.UserToken do
        sent_to: sent_to,
        user_id: user.id
      }}
-  end
-
-  @doc """
-  Checks if the token is valid and returns its underlying lookup query.
-
-  If found, the query returns a tuple of the form `{user, token}`.
-
-  The given token is valid if it matches its hashed counterpart in the
-  database. This function also checks whether the token has expired. The context
-  of a magic link token is always "login".
-  """
-  def verify_magic_link_token_query(token) do
-    case Base.url_decode64(token, padding: false) do
-      {:ok, decoded_token} ->
-        hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
-
-        query =
-          from token in by_token_and_context_query(hashed_token, "login"),
-            join: user in assoc(token, :user),
-            where: token.inserted_at > ago(^@magic_link_validity_in_minutes, "minute"),
-            where: token.sent_to == user.email,
-            select: {user, token}
-
-        {:ok, query}
-
-      :error ->
-        :error
-    end
   end
 
   @doc """

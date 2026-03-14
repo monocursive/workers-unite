@@ -307,60 +307,6 @@ defmodule WorkersUnite.AccountsTest do
     end
   end
 
-  describe "get_user_by_magic_link_token/1" do
-    setup do
-      user = user_fixture()
-      {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
-      %{user: user, token: encoded_token}
-    end
-
-    test "returns user by token", %{user: user, token: token} do
-      assert session_user = Accounts.get_user_by_magic_link_token(token)
-      assert session_user.id == user.id
-    end
-
-    test "does not return user for invalid token" do
-      refute Accounts.get_user_by_magic_link_token("oops")
-    end
-
-    test "does not return user for expired token", %{token: token} do
-      {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
-      refute Accounts.get_user_by_magic_link_token(token)
-    end
-  end
-
-  describe "login_user_by_magic_link/1" do
-    test "confirms user and expires tokens" do
-      user = unconfirmed_user_fixture()
-      refute user.confirmed_at
-      {encoded_token, hashed_token} = generate_user_magic_link_token(user)
-
-      assert {:ok, {user, [%{token: ^hashed_token}]}} =
-               Accounts.login_user_by_magic_link(encoded_token)
-
-      assert user.confirmed_at
-    end
-
-    test "returns user and (deleted) token for confirmed user" do
-      user = user_fixture()
-      assert user.confirmed_at
-      {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
-      assert {:ok, {^user, []}} = Accounts.login_user_by_magic_link(encoded_token)
-      # one time use only
-      assert {:error, :not_found} = Accounts.login_user_by_magic_link(encoded_token)
-    end
-
-    test "raises when unconfirmed user has password set" do
-      user = unconfirmed_user_fixture()
-      {1, nil} = Repo.update_all(User, set: [hashed_password: "hashed"])
-      {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
-
-      assert_raise RuntimeError, ~r/magic link log in is not allowed/, fn ->
-        Accounts.login_user_by_magic_link(encoded_token)
-      end
-    end
-  end
-
   describe "delete_user_session_token/1" do
     test "deletes the token" do
       user = user_fixture()
@@ -370,22 +316,151 @@ defmodule WorkersUnite.AccountsTest do
     end
   end
 
-  describe "deliver_login_instructions/2" do
-    setup do
-      %{user: unconfirmed_user_fixture()}
+  describe "has_passkeys?/1" do
+    test "returns false when user has no passkeys" do
+      user = user_fixture()
+      refute Accounts.has_passkeys?(user)
     end
 
-    test "sends token through notification", %{user: user} do
-      token =
-        extract_user_token(fn url ->
-          Accounts.deliver_login_instructions(user, url)
-        end)
+    test "returns true when user has a passkey" do
+      user = user_fixture()
+      webauthn_credential_fixture(user)
+      assert Accounts.has_passkeys?(user)
+    end
+  end
 
-      {:ok, token} = Base.url_decode64(token, padding: false)
-      assert user_token = Repo.get_by(UserToken, token: :crypto.hash(:sha256, token))
-      assert user_token.user_id == user.id
-      assert user_token.sent_to == user.email
-      assert user_token.context == "login"
+  describe "list_webauthn_credentials/1" do
+    test "returns empty list when user has no credentials" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      assert Accounts.list_webauthn_credentials(scope) == []
+    end
+
+    test "returns credentials for the given user" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cred1 = webauthn_credential_fixture(user, %{friendly_name: "Key A"})
+      cred2 = webauthn_credential_fixture(user, %{friendly_name: "Key B"})
+
+      credentials = Accounts.list_webauthn_credentials(scope)
+      credential_ids = Enum.map(credentials, & &1.id)
+
+      assert cred1.id in credential_ids
+      assert cred2.id in credential_ids
+    end
+
+    test "does not return credentials belonging to another user" do
+      user1 = user_fixture()
+      user2 = user_fixture()
+      scope1 = user_scope_fixture(user1)
+
+      _cred = webauthn_credential_fixture(user2, %{friendly_name: "Other User Key"})
+
+      assert Accounts.list_webauthn_credentials(scope1) == []
+    end
+
+    test "returns credentials ordered by inserted_at ascending" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cred1 = webauthn_credential_fixture(user, %{friendly_name: "First"})
+      cred2 = webauthn_credential_fixture(user, %{friendly_name: "Second"})
+
+      [first, second] = Accounts.list_webauthn_credentials(scope)
+      assert first.id == cred1.id
+      assert second.id == cred2.id
+    end
+  end
+
+  describe "rename_webauthn_credential/3" do
+    test "renames a credential successfully" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cred = webauthn_credential_fixture(user, %{friendly_name: "Old Name"})
+
+      assert {:ok, updated} = Accounts.rename_webauthn_credential(scope, cred.id, "New Name")
+      assert updated.friendly_name == "New Name"
+    end
+
+    test "validates name length (max 100 chars)" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cred = webauthn_credential_fixture(user)
+
+      too_long = String.duplicate("a", 101)
+      assert {:error, changeset} = Accounts.rename_webauthn_credential(scope, cred.id, too_long)
+      assert "should be at most 100 character(s)" in errors_on(changeset).friendly_name
+    end
+
+    test "validates name is required" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cred = webauthn_credential_fixture(user)
+
+      assert {:error, changeset} = Accounts.rename_webauthn_credential(scope, cred.id, "")
+      assert "can't be blank" in errors_on(changeset).friendly_name
+    end
+
+    test "raises when credential belongs to another user" do
+      user1 = user_fixture()
+      user2 = user_fixture()
+      scope1 = user_scope_fixture(user1)
+      cred = webauthn_credential_fixture(user2)
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Accounts.rename_webauthn_credential(scope1, cred.id, "Nope")
+      end
+    end
+  end
+
+  describe "delete_webauthn_credential/2" do
+    test "deletes a credential successfully" do
+      user = user_fixture() |> set_password()
+      scope = user_scope_fixture(user)
+      cred = webauthn_credential_fixture(user)
+
+      assert {:ok, _deleted} = Accounts.delete_webauthn_credential(scope, cred.id)
+      assert Accounts.list_webauthn_credentials(scope) == []
+    end
+
+    test "allows deleting last credential when user has a password" do
+      user = user_fixture() |> set_password()
+      scope = user_scope_fixture(user)
+      cred = webauthn_credential_fixture(user)
+
+      assert {:ok, _deleted} = Accounts.delete_webauthn_credential(scope, cred.id)
+    end
+
+    test "refuses to delete last credential when user has no password" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cred = webauthn_credential_fixture(user)
+
+      assert {:error, :last_auth_factor} = Accounts.delete_webauthn_credential(scope, cred.id)
+    end
+
+    test "allows deleting one of multiple credentials even without password" do
+      user = user_fixture()
+      scope = user_scope_fixture(user)
+      cred1 = webauthn_credential_fixture(user, %{friendly_name: "Key 1"})
+      cred2 = webauthn_credential_fixture(user, %{friendly_name: "Key 2"})
+
+      assert {:ok, _deleted} = Accounts.delete_webauthn_credential(scope, cred1.id)
+
+      remaining = Accounts.list_webauthn_credentials(scope)
+      assert length(remaining) == 1
+      assert hd(remaining).id == cred2.id
+      assert {:error, :last_auth_factor} = Accounts.delete_webauthn_credential(scope, cred2.id)
+    end
+
+    test "raises when credential belongs to another user" do
+      user1 = user_fixture()
+      user2 = user_fixture()
+      scope1 = user_scope_fixture(user1)
+      cred = webauthn_credential_fixture(user2)
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Accounts.delete_webauthn_credential(scope1, cred.id)
+      end
     end
   end
 

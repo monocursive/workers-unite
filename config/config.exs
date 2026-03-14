@@ -130,6 +130,12 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# WebAuthn / Passkeys
+config :wax_,
+  origin: System.get_env("WORKERS_UNITE_ORIGIN", "http://localhost:4000"),
+  rp_id: :auto,
+  attestation: "none"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

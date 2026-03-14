@@ -5,11 +5,10 @@ defmodule WorkersUniteWeb.OnboardingLiveTest do
   import WorkersUnite.AccountsFixtures
 
   test "renders first-run setup when no users exist", %{conn: conn} do
-    {:ok, _view, html} = live(conn, "/onboarding")
-    assert html =~ "WorkersUnite"
-    assert html =~ "First-run setup"
-    assert html =~ "Create Admin Account"
-    refute html =~ "Step"
+    {:ok, view, _html} = live(conn, "/onboarding")
+
+    assert has_element?(view, "#onboarding-account-form")
+    assert has_element?(view, "h2", "Create Admin Account")
   end
 
   test "redirects to / when onboarding already completed", %{conn: conn} do
@@ -25,17 +24,58 @@ defmodule WorkersUniteWeb.OnboardingLiveTest do
     assert {:error, {:redirect, %{to: "/users/log-in"}}} = live(conn, "/onboarding")
   end
 
-  test "creates admin account and redirects", %{conn: conn} do
+  test "create account renders session handoff and leaves onboarding incomplete", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/onboarding")
 
     view
-    |> form("form", user: %{email: "admin@test.com", password: "supersecretpassword"})
+    |> form("#onboarding-account-form",
+      user: %{email: "admin@test.com", password: "supersecretpassword"}
+    )
     |> render_submit()
 
-    {path, _flash} = assert_redirect(view)
-    assert path =~ "/users/onboarding-login/"
+    assert has_element?(view, "#onboarding-session-form")
+    refute WorkersUnite.Settings.onboarding_completed?()
+  end
 
-    # Onboarding should be marked complete
+  test "renders passkey step when authenticated and onboarding is incomplete", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_user(conn, user)
+
+    {:ok, view, _html} = live(conn, "/onboarding")
+
+    assert has_element?(view, "#onboarding-passkey-register-btn")
+    assert has_element?(view, "#onboarding-skip-passkey-btn")
+  end
+
+  test "skip completes onboarding and redirects to dashboard", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_user(conn, user)
+
+    {:ok, view, _html} = live(conn, "/onboarding")
+
+    view
+    |> element("#onboarding-skip-passkey-btn")
+    |> render_click()
+
+    {path, _flash} = assert_redirect(view)
+
+    assert path == "/"
     assert WorkersUnite.Settings.onboarding_completed?()
+    assert WorkersUnite.Accounts.get_user!(user.id).onboarding_completed_at
+  end
+
+  test "registered event completes onboarding and redirects to dashboard", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_user(conn, user)
+
+    {:ok, view, _html} = live(conn, "/onboarding")
+
+    render_hook(view, "registered", %{})
+
+    {path, _flash} = assert_redirect(view)
+
+    assert path == "/"
+    assert WorkersUnite.Settings.onboarding_completed?()
+    assert WorkersUnite.Accounts.get_user!(user.id).onboarding_completed_at
   end
 end

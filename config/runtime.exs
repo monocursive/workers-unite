@@ -84,6 +84,11 @@ if config_env() == :prod do
 
   config :workers_unite, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # WebAuthn origin must match the production URL exactly
+  config :wax_,
+    origin: "https://#{host}",
+    rp_id: host
+
   config :workers_unite, WorkersUniteWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
