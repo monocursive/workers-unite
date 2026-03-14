@@ -1,4 +1,4 @@
-defmodule Forgelet.Repo.Migrations.CreateEvents do
+defmodule WorkersUnite.Repo.Migrations.CreateEvents do
   use Ecto.Migration
 
   def change do

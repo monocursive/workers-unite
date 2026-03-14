@@ -12,44 +12,27 @@ import Config
 # If you use `mix release`, you need to explicitly enable the server
 # by passing the PHX_SERVER=true when you start it:
 #
-#     PHX_SERVER=true bin/forgelet start
+#     PHX_SERVER=true bin/workers_unite start
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
-  config :forgelet, ForgeletWeb.Endpoint, server: true
+  config :workers_unite, WorkersUniteWeb.Endpoint, server: true
 end
 
-config :forgelet, ForgeletWeb.Endpoint,
+config :workers_unite, WorkersUniteWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
 if encryption_key = System.get_env("CREDENTIAL_ENCRYPTION_KEY") do
-  config :forgelet, credential_encryption_key: Base.decode64!(encryption_key)
+  config :workers_unite, credential_encryption_key: Base.decode64!(encryption_key)
 end
 
 if config_env() != :test do
-  config :forgelet,
+  config :workers_unite,
     runtime_registry: %{
-      claude_code: %{
-        adapter: Forgelet.Agent.Runtime.ClaudeCode,
-        credentials: %{"ANTHROPIC_API_KEY" => {:system, "ANTHROPIC_API_KEY"}},
-        models: %{
-          fast_coder: %{id: "claude-sonnet-4-6"},
-          fast_reviewer: %{id: "claude-sonnet-4-6"},
-          deep_orchestrator: %{id: "claude-opus-4-6"}
-        },
-        native_tools: %{
-          coder: ["Read", "Write", "Edit", "Glob", "Grep"],
-          reviewer: ["Read", "Glob", "Grep"],
-          orchestrator: ["Read", "Glob", "Grep"]
-        }
-      },
-      codex: %{
-        adapter: Forgelet.Agent.Runtime.Codex,
-        credentials: %{"OPENAI_API_KEY" => {:system, "OPENAI_API_KEY"}},
-        models: %{
-          coder: %{id: "codex-latest"}
-        },
+      opencode: %{
+        adapter: WorkersUnite.Agent.Runtime.OpenCode,
+        credentials: %{},
         native_tools: %{
           coder: ["Read", "Write", "Edit", "Glob", "Grep"],
           reviewer: ["Read", "Glob", "Grep"],
@@ -57,10 +40,13 @@ if config_env() != :test do
         }
       }
     },
-    agent_profiles: %{
-      coder: %{runtime: :claude_code, model: :fast_coder},
-      reviewer: %{runtime: :claude_code, model: :fast_reviewer},
-      orchestrator: %{runtime: :claude_code, model: :deep_orchestrator}
+    provider_registry: %{
+      anthropic: %{
+        credentials: %{"ANTHROPIC_API_KEY" => {:system, "ANTHROPIC_API_KEY"}}
+      },
+      openai: %{
+        credentials: %{"OPENAI_API_KEY" => {:system, "OPENAI_API_KEY"}}
+      }
     }
 end
 
@@ -74,7 +60,7 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
-  config :forgelet, Forgelet.Repo,
+  config :workers_unite, WorkersUnite.Repo,
     # ssl: true,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
@@ -96,9 +82,9 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
 
-  config :forgelet, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+  config :workers_unite, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
-  config :forgelet, ForgeletWeb.Endpoint,
+  config :workers_unite, WorkersUniteWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
       # Enable IPv6 and bind on all interfaces.
@@ -114,7 +100,7 @@ if config_env() == :prod do
   # To get SSL working, you will need to add the `https` key
   # to your endpoint configuration:
   #
-  #     config :forgelet, ForgeletWeb.Endpoint,
+  #     config :workers_unite, WorkersUniteWeb.Endpoint,
   #       https: [
   #         ...,
   #         port: 443,
@@ -136,7 +122,7 @@ if config_env() == :prod do
   # We also recommend setting `force_ssl` in your config/prod.exs,
   # ensuring no data is ever sent via http, always redirecting to https:
   #
-  #     config :forgelet, ForgeletWeb.Endpoint,
+  #     config :workers_unite, WorkersUniteWeb.Endpoint,
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
@@ -146,7 +132,7 @@ if config_env() == :prod do
   # In production you need to configure the mailer to use a different adapter.
   # Here is an example configuration for Mailgun:
   #
-  #     config :forgelet, Forgelet.Mailer,
+  #     config :workers_unite, WorkersUnite.Mailer,
   #       adapter: Swoosh.Adapters.Mailgun,
   #       api_key: System.get_env("MAILGUN_API_KEY"),
   #       domain: System.get_env("MAILGUN_DOMAIN")

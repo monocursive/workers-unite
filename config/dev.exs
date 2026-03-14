@@ -1,11 +1,11 @@
 import Config
 
 # Configure your database
-config :forgelet, Forgelet.Repo,
+config :workers_unite, WorkersUnite.Repo,
   username: "postgres",
   password: "postgres",
   hostname: System.get_env("DB_HOST", "localhost"),
-  database: "forgelet_dev",
+  database: "workers_unite_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -16,7 +16,7 @@ config :forgelet, Forgelet.Repo,
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :forgelet, ForgeletWeb.Endpoint,
+config :workers_unite, WorkersUniteWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: if(System.get_env("PHX_IP") == "0.0.0.0", do: {0, 0, 0, 0}, else: {127, 0, 0, 1})],
@@ -25,8 +25,8 @@ config :forgelet, ForgeletWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "pacOqfPJoSY9nE6koI2mZozV1mJQM7g1r6bkT3MGeChILmestj6NsDjGAWDYBk+H",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:forgelet, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:forgelet, ~w(--watch)]}
+    esbuild: {Esbuild, :install_and_run, [:workers_unite, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:workers_unite, ~w(--watch)]}
   ]
 
 # ## SSL Support
@@ -53,7 +53,7 @@ config :forgelet, ForgeletWeb.Endpoint,
 # different ports.
 
 # Reload browser tabs when matching files change.
-config :forgelet, ForgeletWeb.Endpoint,
+config :workers_unite, WorkersUniteWeb.Endpoint,
   live_reload: [
     web_console_logger: true,
     patterns: [
@@ -62,13 +62,13 @@ config :forgelet, ForgeletWeb.Endpoint,
       # Gettext translations
       ~r"priv/gettext/.*\.po$",
       # Router, Controllers, LiveViews and LiveComponents
-      ~r"lib/forgelet_web/router\.ex$",
-      ~r"lib/forgelet_web/(controllers|live|components)/.*\.(ex|heex)$"
+      ~r"lib/workers_unite_web/router\.ex$",
+      ~r"lib/workers_unite_web/(controllers|live|components)/.*\.(ex|heex)$"
     ]
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :forgelet, dev_routes: true
+config :workers_unite, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"

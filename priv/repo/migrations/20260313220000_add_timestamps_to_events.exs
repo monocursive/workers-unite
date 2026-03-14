@@ -1,4 +1,4 @@
-defmodule Forgelet.Repo.Migrations.AddTimestampsToEvents do
+defmodule WorkersUnite.Repo.Migrations.AddTimestampsToEvents do
   use Ecto.Migration
 
   def change do

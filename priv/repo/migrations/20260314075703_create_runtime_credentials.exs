@@ -1,4 +1,4 @@
-defmodule Forgelet.Repo.Migrations.CreateRuntimeCredentials do
+defmodule WorkersUnite.Repo.Migrations.CreateRuntimeCredentials do
   use Ecto.Migration
 
   def change do

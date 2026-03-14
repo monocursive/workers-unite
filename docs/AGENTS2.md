@@ -1,8 +1,8 @@
-# Forgelet — Distributed Agent Node Architecture
+# WorkersUnite — Distributed Agent Node Architecture
 
 ## What Changes From `AGENTS.md`
 
-This version keeps the original Forgelet idea intact:
+This version keeps the original WorkersUnite idea intact:
 
 - Git remains the storage layer for code.
 - The append-only event log remains the source of truth.
@@ -10,23 +10,23 @@ This version keeps the original Forgelet idea intact:
 
 What changes is the runtime topology.
 
-Instead of treating the cluster as a mostly flat collection of symmetric nodes, Forgelet is split into:
+Instead of treating the cluster as a mostly flat collection of symmetric nodes, WorkersUnite is split into:
 
 - a control plane running one or more master/orchestrator nodes
 - a worker plane running agent nodes
 - a deployment plane responsible for staged rollout, rollback, and repair
 
-The explicit goal is to let Forgelet modify and redeploy itself without requiring the entire system to stop.
+The explicit goal is to let WorkersUnite modify and redeploy itself without requiring the entire system to stop.
 
 ## Design Position
 
-Forgelet may be self-hosting, but it must not be self-destructive.
+WorkersUnite may be self-hosting, but it must not be self-destructive.
 
 That means:
 
-- agents may propose changes to Forgelet itself
+- agents may propose changes to WorkersUnite itself
 - agents may validate and vote on those changes
-- approved changes may be merged into the Forgelet repository
+- approved changes may be merged into the WorkersUnite repository
 - deployment is a separate controlled action
 - production activation must be staged and reversible
 
@@ -38,23 +38,23 @@ The control plane must never depend on a single in-memory process for truth. Dur
 ┌──────────────────────────────────────────────────────────────────┐
 │                         CONTROL PLANE                           │
 │                                                                  │
-│  Forgelet.Control.Master        schedules work                   │
-│  Forgelet.Control.NodeManager   tracks node health               │
-│  Forgelet.Deploy.Orchestrator   rolls out releases               │
-│  Forgelet.Consensus.Engine      evaluates votes                  │
-│  Forgelet.EventStore            durable event log                │
+│  WorkersUnite.Control.Master        schedules work                   │
+│  WorkersUnite.Control.NodeManager   tracks node health               │
+│  WorkersUnite.Deploy.Orchestrator   rolls out releases               │
+│  WorkersUnite.Consensus.Engine      evaluates votes                  │
+│  WorkersUnite.EventStore            durable event log                │
 │  Phoenix LiveView               dashboard and supervision UI     │
 │                                                                  │
 ├──────────────────────────────────────────────────────────────────┤
 │                          WORKER PLANE                            │
 │                                                                  │
 │  Worker Node A                                                   │
-│    Forgelet.Worker                                               │
+│    WorkersUnite.Worker                                               │
 │    DynamicSupervisor for agents                                  │
 │    repo worktree / sandbox / tool runners                        │
 │                                                                  │
 │  Worker Node B                                                   │
-│    Forgelet.Worker                                               │
+│    WorkersUnite.Worker                                               │
 │    DynamicSupervisor for agents                                  │
 │    repo worktree / sandbox / tool runners                        │
 │                                                                  │
@@ -102,7 +102,7 @@ Worker nodes should be replaceable. Losing one should degrade capacity, not dest
 
 ### 3. Self-Modification Is Allowed, Self-Activation Is Controlled
 
-Forgelet may modify the Forgelet repository through normal repo workflows:
+WorkersUnite may modify the WorkersUnite repository through normal repo workflows:
 
 - publish an intent
 - claim it
@@ -113,13 +113,13 @@ Forgelet may modify the Forgelet repository through normal repo workflows:
 
 But merge is not deploy.
 
-A merged change to Forgelet must go through a release and deployment workflow before it affects running nodes.
+A merged change to WorkersUnite must go through a release and deployment workflow before it affects running nodes.
 
 ### 4. Hot Upgrade Is Supported, But Not The Default
 
 BEAM hot code upgrade is useful for some infrastructure processes, but it is not the safest default for arbitrary agent logic.
 
-Forgelet should prefer:
+WorkersUnite should prefer:
 
 - rolling worker replacement for most releases
 - canary deployment before cluster-wide rollout
@@ -137,12 +137,12 @@ Hot upgrade should be reserved for:
 
 A control node runs:
 
-- `Forgelet.EventStore`
-- `Forgelet.Consensus.Engine`
-- `Forgelet.Control.Master`
-- `Forgelet.Control.NodeManager`
-- `Forgelet.Deploy.Orchestrator`
-- `Forgelet.Identity.Vault`
+- `WorkersUnite.EventStore`
+- `WorkersUnite.Consensus.Engine`
+- `WorkersUnite.Control.Master`
+- `WorkersUnite.Control.NodeManager`
+- `WorkersUnite.Deploy.Orchestrator`
+- `WorkersUnite.Identity.Vault`
 - Phoenix dashboard services
 
 Responsibilities:
@@ -157,11 +157,11 @@ Responsibilities:
 
 A worker node runs:
 
-- `Forgelet.Worker`
-- `Forgelet.Worker.AgentSupervisor`
-- `Forgelet.Worker.RepositoryRuntime`
+- `WorkersUnite.Worker`
+- `WorkersUnite.Worker.AgentSupervisor`
+- `WorkersUnite.Worker.RepositoryRuntime`
 - optional local caches and sandboxes
-- its own `Forgelet.Identity.Vault`
+- its own `WorkersUnite.Identity.Vault`
 
 Responsibilities:
 
@@ -175,7 +175,7 @@ Responsibilities:
 
 The system must be able to recover from total loss of running workers using:
 
-- the Forgelet repository
+- the WorkersUnite repository
 - release artifacts
 - database state
 - event log replay
@@ -187,36 +187,36 @@ No worker node may contain unrecoverable system truth.
 ### Control Plane Supervision Tree
 
 ```text
-Forgelet.Application
-├── Forgelet.Repo
-├── Forgelet.Identity.Vault
-├── Forgelet.EventStore
-├── {Phoenix.PubSub, name: Forgelet.PubSub}
-├── Forgelet.Control.NodeManager
-├── Forgelet.Control.Master
-├── Forgelet.Consensus.Engine
-├── Forgelet.Deploy.ReleaseStore
-├── Forgelet.Deploy.Orchestrator
-├── ForgeletWeb.Telemetry
-└── ForgeletWeb.Endpoint
+WorkersUnite.Application
+├── WorkersUnite.Repo
+├── WorkersUnite.Identity.Vault
+├── WorkersUnite.EventStore
+├── {Phoenix.PubSub, name: WorkersUnite.PubSub}
+├── WorkersUnite.Control.NodeManager
+├── WorkersUnite.Control.Master
+├── WorkersUnite.Consensus.Engine
+├── WorkersUnite.Deploy.ReleaseStore
+├── WorkersUnite.Deploy.Orchestrator
+├── WorkersUniteWeb.Telemetry
+└── WorkersUniteWeb.Endpoint
 ```
 
 ### Worker Plane Supervision Tree
 
 ```text
-Forgelet.WorkerApplication
-├── Forgelet.Identity.Vault
-├── {Phoenix.PubSub, name: Forgelet.PubSub}
-├── Forgelet.Worker
-├── {DynamicSupervisor, name: Forgelet.Worker.AgentSupervisor, strategy: :one_for_one}
-└── Forgelet.Worker.RepositoryRuntime
+WorkersUnite.WorkerApplication
+├── WorkersUnite.Identity.Vault
+├── {Phoenix.PubSub, name: WorkersUnite.PubSub}
+├── WorkersUnite.Worker
+├── {DynamicSupervisor, name: WorkersUnite.Worker.AgentSupervisor, strategy: :one_for_one}
+└── WorkersUnite.Worker.RepositoryRuntime
 ```
 
 `Horde` may still be used for distributed registry if needed, but the system should not assume fully symmetric placement of all critical processes. Control-plane processes should have explicit ownership and failover behavior.
 
 ## New Modules
 
-### `Forgelet.Control.Master`
+### `WorkersUnite.Control.Master`
 
 The cluster orchestrator.
 
@@ -231,9 +231,9 @@ Responsibilities:
 
 Important rule:
 
-`Forgelet.Control.Master` is an orchestrator, not a source of truth.
+`WorkersUnite.Control.Master` is an orchestrator, not a source of truth.
 
-### `Forgelet.Control.NodeManager`
+### `WorkersUnite.Control.NodeManager`
 
 Tracks node liveness and capacity.
 
@@ -252,7 +252,7 @@ Use both:
 
 This avoids making recovery decisions based only on transient cluster signals.
 
-### `Forgelet.Deploy.ReleaseStore`
+### `WorkersUnite.Deploy.ReleaseStore`
 
 Tracks release metadata.
 
@@ -265,7 +265,7 @@ Each release record should include:
 - rollback target
 - creation timestamp
 
-### `Forgelet.Deploy.Orchestrator`
+### `WorkersUnite.Deploy.Orchestrator`
 
 Coordinates deploy and rollback.
 
@@ -279,7 +279,7 @@ Responsibilities:
 
 The deploy orchestrator must support partial failure without losing track of rollout state.
 
-### `Forgelet.Worker`
+### `WorkersUnite.Worker`
 
 Represents a worker node runtime.
 
@@ -293,11 +293,11 @@ Responsibilities:
 
 ## Self-Hosting Workflow
 
-Forgelet may modify Forgelet by using the same protocol it uses for other repositories.
+WorkersUnite may modify WorkersUnite by using the same protocol it uses for other repositories.
 
 ### Phase 1: Propose
 
-An agent publishes an intent against the Forgelet repo:
+An agent publishes an intent against the WorkersUnite repo:
 
 - bug fix
 - feature addition
@@ -322,7 +322,7 @@ For self-modifying changes, proof should additionally include:
 
 ### Phase 3: Consensus
 
-Changes to Forgelet itself should use stricter policy than ordinary repository work.
+Changes to WorkersUnite itself should use stricter policy than ordinary repository work.
 
 Recommended examples:
 
@@ -333,7 +333,7 @@ Recommended examples:
 
 ### Phase 4: Merge
 
-If consensus passes, the proposal is merged into the Forgelet repository.
+If consensus passes, the proposal is merged into the WorkersUnite repository.
 
 This does not change running nodes yet.
 
@@ -415,7 +415,7 @@ Avoid making that your first implementation.
 
 ### Failure Model
 
-Forgelet should distinguish:
+WorkersUnite should distinguish:
 
 - agent process failure
 - worker runtime failure
@@ -447,7 +447,7 @@ When a worker node is considered down:
 
 Important constraint:
 
-Forgelet can coordinate repair, but actual machine or container resurrection is better handled by an external runtime such as systemd, Nomad, Kubernetes, or similar infrastructure.
+WorkersUnite can coordinate repair, but actual machine or container resurrection is better handled by an external runtime such as systemd, Nomad, Kubernetes, or similar infrastructure.
 
 Application-level “repair” should mean:
 
@@ -495,7 +495,7 @@ Add these event kinds.
 
 ## Schema Additions
 
-### `Forgelet.Schema.NodeHeartbeat`
+### `WorkersUnite.Schema.NodeHeartbeat`
 
 Fields:
 
@@ -508,7 +508,7 @@ Fields:
 - `active_work_count`
 - `reported_at`
 
-### `Forgelet.Schema.Release`
+### `WorkersUnite.Schema.Release`
 
 Fields:
 
@@ -521,7 +521,7 @@ Fields:
 - `rollback_to`
 - `created_at`
 
-### `Forgelet.Schema.DeployRequest`
+### `WorkersUnite.Schema.DeployRequest`
 
 Fields:
 
@@ -532,7 +532,7 @@ Fields:
 - `reason`
 - `created_at`
 
-### `Forgelet.Schema.Rollback`
+### `WorkersUnite.Schema.Rollback`
 
 Fields:
 
@@ -568,7 +568,7 @@ The system should not let one routine coding agent unilaterally modify and activ
 
 ## Consensus Rules For Self-Modifying Changes
 
-For changes targeting the Forgelet repository itself:
+For changes targeting the WorkersUnite repository itself:
 
 - require more reviewers than normal repo work
 - require at least one reviewer that did not participate in authorship
@@ -616,9 +616,9 @@ Do not deploy cluster-splitting changes casually.
 
 ### Phase 3
 
-- allow Forgelet repo intents/proposals/merges
+- allow WorkersUnite repo intents/proposals/merges
 - require stronger consensus for self-modification
-- create release artifacts from approved Forgelet merges
+- create release artifacts from approved WorkersUnite merges
 
 ### Phase 4
 
@@ -634,7 +634,7 @@ Hot code upgrade should come late, not first.
 
 ## Final Position
 
-Yes, the system can be designed so agents modify Forgelet code through commits and merges, then cause the system to redeploy itself.
+Yes, the system can be designed so agents modify WorkersUnite code through commits and merges, then cause the system to redeploy itself.
 
 But the sound version of that design is:
 
@@ -643,7 +643,7 @@ But the sound version of that design is:
 - staged, not immediate
 - recoverable, not optimistic
 
-Forgelet should be able to survive:
+WorkersUnite should be able to survive:
 
 - a worker node disappearing
 - a failed canary deploy

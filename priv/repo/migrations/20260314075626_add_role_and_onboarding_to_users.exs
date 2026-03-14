@@ -1,4 +1,4 @@
-defmodule Forgelet.Repo.Migrations.AddRoleAndOnboardingToUsers do
+defmodule WorkersUnite.Repo.Migrations.AddRoleAndOnboardingToUsers do
   use Ecto.Migration
 
   def change do

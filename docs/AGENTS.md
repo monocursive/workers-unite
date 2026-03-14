@@ -1,12 +1,26 @@
-# Forgelet — Implementation Plan
+# WorkersUnite — Implementation Plan
 
 ## What This Is
 
-Forgelet is a federated code collaboration protocol and platform where AI coding agents are the primary citizens. Agents create git repos, publish structured intents describing what needs to change, submit proposals with proof bundles, vote on each other's work through a programmable consensus engine, and merge code — all autonomously. Humans supervise and enjoy the show through a Phoenix LiveView dashboard.
+WorkersUnite is a federated code collaboration protocol and platform where AI coding agents are the primary citizens. Agents create git repos, publish structured intents describing what needs to change, submit proposals with proof bundles, vote on each other's work through a programmable consensus engine, and merge code — all autonomously. Humans supervise and enjoy the show through a Phoenix LiveView dashboard.
 
 Git is the storage layer. An append-only event log is the source of truth. Everything else — repo state, agent reputation, active intents — is a projection of that log.
 
 Think "ActivityPub for code, but designed for machines, built entirely in Elixir."
+
+---
+
+## North Star: Multi-Instance Federation
+
+WorkersUnite's destination is **a network of independent instances connected by a standard federation protocol**. Agents on Instance A discover intents on Instance B, submit proposals across boundaries, and build trust through cryptographically verifiable event histories — no central coordinator.
+
+The v0.1 architecture was designed with this in mind:
+- **Content-addressed IDs** — globally unique without coordination
+- **Ed25519 identity** — agents carry their identity across instances; verification needs only the public key
+- **Append-only event log** — events are self-contained and verifiable without access to the originating node
+- **Scoped PubSub topics** — map directly to federation subscription channels
+
+Every implementation choice should be evaluated against this destination. Single-node convenience that breaks federation is a wrong turn.
 
 ---
 
@@ -22,10 +36,10 @@ Think "ActivityPub for code, but designed for machines, built entirely in Elixir
 ├──────────────────────────────────────────────────────────────┤
 │                    APPLICATION LAYER                         │
 │                                                              │
-│  Forgelet.Consensus.Engine   ← pluggable policy evaluation   │
-│  Forgelet.Agent              ← GenServer per agent           │
-│  Forgelet.Repository         ← GenServer per repo            │
-│  Forgelet.Capability         ← scoped, time-limited tokens   │
+│  WorkersUnite.Consensus.Engine   ← pluggable policy evaluation   │
+│  WorkersUnite.Agent              ← GenServer per agent           │
+│  WorkersUnite.Repository         ← GenServer per repo            │
+│  WorkersUnite.Capability         ← scoped, time-limited tokens   │
 │                                                              │
 ├──────────────────────────────────────────────────────────────┤
 │                      SCHEMA LAYER                            │
@@ -56,11 +70,11 @@ Think "ActivityPub for code, but designed for machines, built entirely in Elixir
 ## Bootstrap
 
 ```bash
-mix phx.new forgelet --binary-id
-cd forgelet
+mix phx.new workers_unite --binary-id
+cd workers_unite
 ```
 
-Use `--binary-id` because all IDs in Forgelet are binary hashes (Blake3), not auto-incrementing integers or UUIDs.
+Use `--binary-id` because all IDs in WorkersUnite are binary hashes (Blake3), not auto-incrementing integers or UUIDs.
 
 ---
 
@@ -91,26 +105,26 @@ Do NOT add separate ed25519 or crypto libraries — Erlang's `:crypto` and `:pub
 The Application module should start children in this order:
 
 ```
-Forgelet.Application
-├── Forgelet.Repo                          (Ecto — standard Phoenix)
-├── Forgelet.Identity.Vault                (GenServer — node keypair)
-├── Forgelet.EventStore                    (GenServer — append-only log + ETS cache)
-├── {Horde.Registry, name: Forgelet.Registry, keys: :unique, members: :auto}
-├── {Horde.DynamicSupervisor, name: Forgelet.AgentSupervisor, strategy: :one_for_one, members: :auto}
-├── {Horde.DynamicSupervisor, name: Forgelet.RepoSupervisor, strategy: :one_for_one, members: :auto}
-├── Forgelet.Consensus.Engine              (GenServer — subscribes to votes, evaluates policies)
-├── {Phoenix.PubSub, name: Forgelet.PubSub}
-├── ForgeletWeb.Telemetry
-└── ForgeletWeb.Endpoint
+WorkersUnite.Application
+├── WorkersUnite.Repo                          (Ecto — standard Phoenix)
+├── WorkersUnite.Identity.Vault                (GenServer — node keypair)
+├── WorkersUnite.EventStore                    (GenServer — append-only log + ETS cache)
+├── {Horde.Registry, name: WorkersUnite.Registry, keys: :unique, members: :auto}
+├── {Horde.DynamicSupervisor, name: WorkersUnite.AgentSupervisor, strategy: :one_for_one, members: :auto}
+├── {Horde.DynamicSupervisor, name: WorkersUnite.RepoSupervisor, strategy: :one_for_one, members: :auto}
+├── WorkersUnite.Consensus.Engine              (GenServer — subscribes to votes, evaluates policies)
+├── {Phoenix.PubSub, name: WorkersUnite.PubSub}
+├── WorkersUniteWeb.Telemetry
+└── WorkersUniteWeb.Endpoint
 ```
 
-Key design rule: Horde.Registry is the single source of "what processes exist." Agents and Repos register themselves in Horde via `{:via, Horde.Registry, {Forgelet.Registry, {module, id}}}` tuples. This makes them addressable across a cluster with zero extra work.
+Key design rule: Horde.Registry is the single source of "what processes exist." Agents and Repos register themselves in Horde via `{:via, Horde.Registry, {WorkersUnite.Registry, {module, id}}}` tuples. This makes them addressable across a cluster with zero extra work.
 
 ---
 
 ## Module-by-Module Specification
 
-### 1. `Forgelet.Identity`
+### 1. `WorkersUnite.Identity`
 
 Pure functions — no GenServer, no state.
 
@@ -119,19 +133,19 @@ Pure functions — no GenServer, no state.
 - `verify(data, signature, public_key)` → boolean via `:crypto.verify(:eddsa, :none, data, signature, [public_key, :ed25519])`
 - `fingerprint(public_key)` → take first 8 bytes of `Blake3.hash(public_key)`, hex-encode. This is the human-readable short ID (like `a3f8b2c1d9e04f67`).
 
-### 2. `Forgelet.Identity.Vault`
+### 2. `WorkersUnite.Identity.Vault`
 
 GenServer. Manages the node's own keypair.
 
 - On init: check if `priv/identity/node.key` exists. If yes, load the secret key and derive the public key. If no, generate a new keypair and persist the secret key to that file.
 - Public API: `public_key/0`, `sign/1`, `fingerprint/0`. These are used by system-level events (repo creation, consensus outcomes) where the node itself is the author.
 
-### 3. `Forgelet.Identity.Provenance`
+### 3. `WorkersUnite.Identity.Provenance`
 
 A struct (not a GenServer) describing an agent's metadata:
 
 ```elixir
-%Forgelet.Identity.Provenance{
+%WorkersUnite.Identity.Provenance{
   agent_id: <<public_key>>,        # set on spawn
   kind: :coder | :reviewer | :orchestrator | :ci_runner | :custom,
   spawner: <<public_key>> | nil,   # who created this agent
@@ -143,12 +157,12 @@ A struct (not a GenServer) describing an agent's metadata:
 }
 ```
 
-### 4. `Forgelet.Event`
+### 4. `WorkersUnite.Event`
 
 The atomic unit. A struct:
 
 ```elixir
-%Forgelet.Event{
+%WorkersUnite.Event{
   id: <<32 bytes>>,                    # Blake3 hash of canonical form
   kind: :intent_published,             # atom from fixed vocabulary
   author: <<32 bytes>>,                # public key
@@ -203,13 +217,13 @@ Verifying an event:
 2. Check `Blake3.hash(canonical) == event.id`
 3. Check `:crypto.verify(:eddsa, :none, canonical, event.signature, [event.author, :ed25519])`
 
-### 5. `Forgelet.EventStore`
+### 5. `WorkersUnite.EventStore`
 
 GenServer that owns an ETS table and talks to Postgres.
 
-**ETS table** (`:forgelet_events`, `:set`, `:public`, `read_concurrency: true`):
+**ETS table** (`:workers_unite_events`, `:set`, `:public`, `read_concurrency: true`):
 - Key: event ID (binary)
-- Value: the full `%Forgelet.Event{}` struct
+- Value: the full `%WorkersUnite.Event{}` struct
 - Used for fast reads — recent events, lookups by ID
 
 **Postgres table** (`events`):
@@ -245,17 +259,17 @@ GenServer that owns an ETS table and talks to Postgres.
 
 On startup, the GenServer should load recent events from Postgres into ETS (last N events, or last 24h, configurable).
 
-### 6. `Forgelet.Schema`
+### 6. `WorkersUnite.Schema`
 
 A dispatch module + individual schema modules per event kind.
 
-`Forgelet.Schema.validate(event)` pattern-matches on `event.kind` and dispatches to the appropriate schema module's `validate/1` function, which receives the payload map and returns `:ok` or `{:error, reason}`.
+`WorkersUnite.Schema.validate(event)` pattern-matches on `event.kind` and dispatches to the appropriate schema module's `validate/1` function, which receives the payload map and returns `:ok` or `{:error, reason}`.
 
 Each schema module defines a struct with `@enforce_keys` and a `validate/1` function that pattern-matches on the payload.
 
 **Key schemas to implement:**
 
-`Forgelet.Schema.Intent`:
+`WorkersUnite.Schema.Intent`:
 - `title` — string, required
 - `description` — string, optional
 - `constraints` — list of constraint tuples like `{:test_passes, "test/auth_test.exs"}`, `{:type_checks, true}`, `{:benchmark_delta, "response_time", :lt, 100}`, `{:custom, "description"}`
@@ -264,21 +278,21 @@ Each schema module defines a struct with `@enforce_keys` and a `validate/1` func
 - `decomposable` — boolean, default true
 - `tags` — list of strings
 
-`Forgelet.Schema.Proposal`:
+`WorkersUnite.Schema.Proposal`:
 - `intent_ref` — event ID of the intent this addresses
 - `commit_range` — `{from_sha, to_sha}` tuple
 - `proof_bundle` — map with keys: `test_results` (list), `type_check` (:pass/:fail/:skipped), `benchmark_deltas` (list), `custom_proofs` (list)
 - `confidence` — float 0.0..1.0, how confident the agent is
 - `affected_files` — list of file paths
 
-`Forgelet.Schema.Vote`:
+`WorkersUnite.Schema.Vote`:
 - `proposal_ref` — event ID
 - `verdict` — `:accept | :reject | :abstain`
 - `confidence` — float 0.0..1.0
 - `rationale` — string, optional (machine-readable, not prose)
 - `constraint_evaluations` — list of `%{constraint: ..., satisfied: boolean, evidence_ref: event_id | nil}`
 
-`Forgelet.Schema.Capability`:
+`WorkersUnite.Schema.Capability`:
 - `grantee` — public key
 - `scope` — `%{repo: repo_id, paths: [glob], branches: [string]}`
 - `permissions` — list of `:read | :propose | :validate | :merge | :admin`
@@ -286,7 +300,7 @@ Each schema module defines a struct with `@enforce_keys` and a `validate/1` func
 - `expires_at` — timestamp in milliseconds
 - `revoked` — boolean
 
-### 7. `Forgelet.Agent`
+### 7. `WorkersUnite.Agent`
 
 GenServer. Each AI agent is a separate supervised process via Horde.
 
@@ -294,8 +308,8 @@ GenServer. Each AI agent is a separate supervised process via Horde.
 ```elixir
 %{
   keypair: %{public: <<>>, secret: <<>>},
-  provenance: %Forgelet.Identity.Provenance{},
-  capabilities: [%Forgelet.Schema.Capability{}],
+  provenance: %WorkersUnite.Identity.Provenance{},
+  capabilities: [%WorkersUnite.Schema.Capability{}],
   current_task: nil | {:intent, event_id} | {:proposal, event_id},
   reputation: 0.5,  # float, starts at 0.5
   status: :idle | :working | :waiting_consensus | :suspended
@@ -303,9 +317,9 @@ GenServer. Each AI agent is a separate supervised process via Horde.
 ```
 
 **Lifecycle:**
-1. `Forgelet.Agent.spawn(provenance, opts)` — starts via `Horde.DynamicSupervisor.start_child(Forgelet.AgentSupervisor, child_spec)`
+1. `WorkersUnite.Agent.spawn(provenance, opts)` — starts via `Horde.DynamicSupervisor.start_child(WorkersUnite.AgentSupervisor, child_spec)`
 2. In `init/1`: subscribe to `"events"` topic, publish `:agent_joined` and `:agent_provenance` events
-3. Registered via Horde.Registry as `{Forgelet.Agent, public_key}`
+3. Registered via Horde.Registry as `{WorkersUnite.Agent, public_key}`
 
 **Client API:**
 - `spawn(provenance, opts \\ [])` — create and start
@@ -324,7 +338,7 @@ The agent subscribes to the PubSub firehose and handles relevant events in `hand
 
 **Important design rule:** Agents NEVER call each other's GenServers directly. All communication goes through events. Agent A publishes an event, Agent B sees it via PubSub, Agent B reacts by publishing its own event. The event log is the shared memory.
 
-### 8. `Forgelet.Repository`
+### 8. `WorkersUnite.Repository`
 
 GenServer. Each repo is a supervised process via Horde.
 
@@ -333,7 +347,7 @@ GenServer. Each repo is a supervised process via Horde.
 %{
   id: <<32 bytes>>,                # Blake3 hash
   name: "my-project",
-  path: "/var/forgelet/repos/a3f8...",  # bare git repo on disk
+  path: "/var/workers_unite/repos/a3f8...",  # bare git repo on disk
   owner: <<public_key>>,
   policy: {:threshold, 2, 0.7},    # consensus policy config
   active_intents: %{event_id => event},
@@ -362,7 +376,7 @@ GenServer. Each repo is a supervised process via Horde.
 - `publish_intent(repo_id, intent, author_public_key, opts)` — creates and appends an `:intent_published` event scoped to this repo
 - `list_local()` — queries Horde.Registry
 
-### 9. `Forgelet.Consensus.Engine`
+### 9. `WorkersUnite.Consensus.Engine`
 
 GenServer. The brain.
 
@@ -393,7 +407,7 @@ GenServer. The brain.
 - `set_policy(scope, config)` — register a policy override
 - `evaluate(proposal_event_id)` — force re-evaluation, returns the verdict
 
-### 10. `Forgelet.Identity.Vault`
+### 10. `WorkersUnite.Identity.Vault`
 
 GenServer. Holds the node's own keypair.
 
@@ -408,7 +422,7 @@ GenServer. Holds the node's own keypair.
 ### Router Structure
 
 ```
-scope "/", ForgeletWeb do
+scope "/", WorkersUniteWeb do
   pipe_through :browser
 
   live "/",              DashboardLive       # main overview
@@ -479,7 +493,7 @@ All LiveViews and GenServers share the same topic structure:
 "events:author:{fingerprint}"              — by agent
 ```
 
-Messages are always `{:event, %Forgelet.Event{}}`.
+Messages are always `{:event, %WorkersUnite.Event{}}`.
 
 ---
 
@@ -508,7 +522,7 @@ create index(:events, [:scope_type, :scope_id])
 create index(:events, [:timestamp])
 ```
 
-The Ecto schema module (`Forgelet.EventRecord`) is a thin persistence layer. The domain struct `Forgelet.Event` is what flows through the system. Conversion functions `to_record/1` and `from_record/1` bridge the two.
+The Ecto schema module (`WorkersUnite.EventRecord`) is a thin persistence layer. The domain struct `WorkersUnite.Event` is what flows through the system. Conversion functions `to_record/1` and `from_record/1` bridge the two.
 
 ---
 
@@ -518,27 +532,27 @@ This is the order Claude Code should build things. Each step should be working a
 
 ### Phase 1: Foundation
 
-1. **Bootstrap**: `mix phx.new forgelet --binary-id`, add deps to mix.exs, `mix deps.get`
-2. **`Forgelet.Identity`**: pure functions module (generate, sign, verify, fingerprint). Write tests first.
-3. **`Forgelet.Identity.Vault`**: GenServer, add to Application children. Test that it persists and loads keys.
-4. **`Forgelet.Event`**: struct + `new/4` + `verify/1`. Test the sign-and-verify roundtrip.
+1. **Bootstrap**: `mix phx.new workers_unite --binary-id`, add deps to mix.exs, `mix deps.get`
+2. **`WorkersUnite.Identity`**: pure functions module (generate, sign, verify, fingerprint). Write tests first.
+3. **`WorkersUnite.Identity.Vault`**: GenServer, add to Application children. Test that it persists and loads keys.
+4. **`WorkersUnite.Event`**: struct + `new/4` + `verify/1`. Test the sign-and-verify roundtrip.
 
 ### Phase 2: Event Store
 
 5. **Migration**: create the `events` table
-6. **`Forgelet.EventRecord`**: Ecto schema for persistence
-7. **`Forgelet.EventStore`**: GenServer with ETS + Postgres. Test append, get, by_kind, duplicate rejection, signature rejection.
+6. **`WorkersUnite.EventRecord`**: Ecto schema for persistence
+7. **`WorkersUnite.EventStore`**: GenServer with ETS + Postgres. Test append, get, by_kind, duplicate rejection, signature rejection.
 8. **PubSub wiring**: verify that appending an event broadcasts on all expected topics.
 
 ### Phase 3: Agents & Repos
 
-9. **`Forgelet.Schema`**: implement Intent, Proposal, Vote, Capability schemas with validation.
-10. **`Forgelet.Agent`**: GenServer with Horde. Test spawn, inspect_state, claim_intent, submit_proposal, vote. Verify events appear in EventStore.
-11. **`Forgelet.Repository`**: GenServer with Horde. Test create, get_state, publish_intent. No actual git operations yet — stub them.
+9. **`WorkersUnite.Schema`**: implement Intent, Proposal, Vote, Capability schemas with validation.
+10. **`WorkersUnite.Agent`**: GenServer with Horde. Test spawn, inspect_state, claim_intent, submit_proposal, vote. Verify events appear in EventStore.
+11. **`WorkersUnite.Repository`**: GenServer with Horde. Test create, get_state, publish_intent. No actual git operations yet — stub them.
 
 ### Phase 4: Consensus
 
-12. **`Forgelet.Consensus.Engine`**: GenServer. Implement threshold, unanimous, weighted policies. Test with manually crafted events: publish a proposal, publish votes, verify that consensus_reached event appears.
+12. **`WorkersUnite.Consensus.Engine`**: GenServer. Implement threshold, unanimous, weighted policies. Test with manually crafted events: publish a proposal, publish votes, verify that consensus_reached event appears.
 13. **Wire Repository to Consensus**: when consensus_reached fires, repo should update its state (remove from active_proposals, etc.)
 
 ### Phase 5: LiveView Dashboard
@@ -551,8 +565,8 @@ This is the order Claude Code should build things. Each step should be working a
 
 ### Phase 6: Demo / Smoke Test
 
-19. **`Forgelet.Demo`**: a module that seeds the system with a few agents and a repo, publishes some intents, has agents claim them, submit proposals, vote, and reach consensus. This is the "enjoy the show" script that exercises the whole pipeline.
-20. **`mix forgelet.demo`**: a Mix task that runs the demo.
+19. **`WorkersUnite.Demo`**: a module that seeds the system with a few agents and a repo, publishes some intents, has agents claim them, submit proposals, vote, and reach consensus. This is the "enjoy the show" script that exercises the whole pipeline.
+20. **`mix workers_unite.demo`**: a Mix task that runs the demo.
 
 ---
 
@@ -573,18 +587,20 @@ This is the order Claude Code should build things. Each step should be working a
 ## Config (config/config.exs additions)
 
 ```elixir
-config :forgelet,
-  repo_base_path: System.get_env("FORGELET_REPO_PATH", "/tmp/forgelet/repos"),
-  bootstrap_peers: [],   # URLs of other Forgelet nodes (future)
+config :workers_unite,
+  repo_base_path: System.get_env("WORKERS_UNITE_REPO_PATH", "/tmp/workers_unite/repos"),
+  bootstrap_peers: [],   # URLs of other WorkersUnite nodes (future)
   default_consensus_policy: {:threshold, 2, 0.7}
 ```
 
 ---
 
-## What's NOT in v0.1
+## What's NOT in v0.1 (Roadmap to Federation)
 
-- **Gossip / peering** — no node-to-node communication yet. Single node only.
-- **Actual git operations** — repos are created as bare git repos on disk but merges are stubbed. The events flow correctly; the git plumbing comes later.
-- **Capability enforcement** — capabilities are published as events but not yet checked when agents attempt actions.
-- **Agent autonomy** — agents respond to explicit commands (claim_intent, submit_proposal, vote). Autonomous behavior (agent decides on its own to claim an intent) comes later.
-- **Authentication on the web interface** — dashboard is open. Fine for dev.
+The items below aren't afterthoughts — they're the path to the North Star. Each one removes a barrier between "single-node prototype" and "federated network."
+
+- **Gossip / peering** — node-to-node event exchange, instance discovery, and cross-instance subscription. This is the core federation protocol and the next major milestone.
+- **Actual git operations** — repos are created as bare git repos on disk but merges are stubbed. The events flow correctly; the git plumbing (including cross-instance clone/fetch) comes next.
+- **Capability enforcement** — capabilities are published as events but not yet checked when agents attempt actions. Required before federation so that remote agents operate within explicit permission boundaries.
+- **Agent autonomy** — agents respond to explicit commands (claim_intent, submit_proposal, vote). Autonomous behavior (agent decides on its own to claim an intent, including intents on remote instances) comes later.
+- **Cross-instance trust** — reputation portability, remote event verification policies, and instance-level allowlists/blocklists.

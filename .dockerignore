@@ -7,6 +7,6 @@ cover/
 tmp/
 *.ez
 erl_crash.dump
-forgelet-*.tar
+workers-unite-*.tar
 priv/static/assets/
 priv/static/cache_manifest.json

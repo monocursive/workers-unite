@@ -1,4 +1,4 @@
-defmodule Forgelet.Repo.Migrations.AddControlPlaneFoundations do
+defmodule WorkersUnite.Repo.Migrations.AddControlPlaneFoundations do
   use Ecto.Migration
 
   def change do

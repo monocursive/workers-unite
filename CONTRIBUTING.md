@@ -1,4 +1,4 @@
-# Contributing to Forgelet
+# Contributing to WorkersUnite
 
 Thanks for your interest in contributing! This document covers setup, conventions, and the PR process.
 
@@ -13,8 +13,8 @@ Thanks for your interest in contributing! This document covers setup, convention
 ### Setup
 
 ```bash
-git clone https://github.com/forgelet/forgelet.git
-cd forgelet
+git clone https://github.com/monocursive/workers-unite.git
+cd workers_unite
 mix setup
 mix phx.server
 ```
@@ -51,7 +51,7 @@ This runs:
 
 - Run `mix format` before committing
 - Payload keys must be strings (not atoms) for Postgres JSONB consistency
-- Use `Forgelet.Identity` for all crypto operations, never call `:crypto` directly
+- Use `WorkersUnite.Identity` for all crypto operations, never call `:crypto` directly
 - All IDs are content-addressed SHA-256 hashes, not UUIDs
 
 ### Architecture Conventions

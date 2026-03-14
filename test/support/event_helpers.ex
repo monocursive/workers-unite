@@ -1,9 +1,9 @@
-defmodule Forgelet.EventHelpers do
+defmodule WorkersUnite.EventHelpers do
   @moduledoc """
   Shared helpers for generating valid test events.
   """
 
-  alias Forgelet.{Event, Identity}
+  alias WorkersUnite.{Event, Identity}
 
   def generate_keypair do
     Identity.generate()

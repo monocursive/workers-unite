@@ -1,13 +1,13 @@
-defmodule Forgelet.AccountsFixtures do
+defmodule WorkersUnite.AccountsFixtures do
   @moduledoc """
   This module defines test helpers for creating
-  entities via the `Forgelet.Accounts` context.
+  entities via the `WorkersUnite.Accounts` context.
   """
 
   import Ecto.Query
 
-  alias Forgelet.Accounts
-  alias Forgelet.Accounts.Scope
+  alias WorkersUnite.Accounts
+  alias WorkersUnite.Accounts.Scope
 
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
   def valid_user_password, do: "hello world!"
@@ -48,7 +48,7 @@ defmodule Forgelet.AccountsFixtures do
     {:ok, user} = Accounts.complete_onboarding(user)
 
     # Complete onboarding at instance level
-    Forgelet.Settings.complete_onboarding(user.id)
+    WorkersUnite.Settings.complete_onboarding(user.id)
 
     user
   end
@@ -76,7 +76,7 @@ defmodule Forgelet.AccountsFixtures do
   end
 
   def override_token_authenticated_at(token, authenticated_at) when is_binary(token) do
-    Forgelet.Repo.update_all(
+    WorkersUnite.Repo.update_all(
       from(t in Accounts.UserToken,
         where: t.token == ^token
       ),
@@ -86,14 +86,14 @@ defmodule Forgelet.AccountsFixtures do
 
   def generate_user_magic_link_token(user) do
     {encoded_token, user_token} = Accounts.UserToken.build_email_token(user, "login")
-    Forgelet.Repo.insert!(user_token)
+    WorkersUnite.Repo.insert!(user_token)
     {encoded_token, user_token.token}
   end
 
   def offset_user_token(token, amount_to_add, unit) do
     dt = DateTime.add(DateTime.utc_now(:second), amount_to_add, unit)
 
-    Forgelet.Repo.update_all(
+    WorkersUnite.Repo.update_all(
       from(ut in Accounts.UserToken, where: ut.token == ^token),
       set: [inserted_at: dt, authenticated_at: dt]
     )

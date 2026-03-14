@@ -1,4 +1,4 @@
-defmodule Forgelet.Repo.Migrations.CreateInstanceSettings do
+defmodule WorkersUnite.Repo.Migrations.CreateInstanceSettings do
   use Ecto.Migration
 
   def change do

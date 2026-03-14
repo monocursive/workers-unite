@@ -20,15 +20,6 @@ RUN mix local.hex --force && mix local.rebar --force
 
 ENV MIX_ENV=dev
 
-COPY mix.exs mix.lock ./
-RUN mix deps.get
-
-COPY config config
-RUN mix deps.compile
-
-COPY . .
-RUN mix compile
-
 EXPOSE 4000
 
 CMD ["/app/entrypoint.sh"]

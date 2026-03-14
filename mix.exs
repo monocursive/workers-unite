@@ -1,12 +1,12 @@
-defmodule Forgelet.MixProject do
+defmodule WorkersUnite.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/forgelet/forgelet"
+  @source_url "https://github.com/monocursive/workers-unite"
 
   def project do
     [
-      app: :forgelet,
+      app: :workers_unite,
       version: @version,
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -24,7 +24,7 @@ defmodule Forgelet.MixProject do
 
   defp package do
     [
-      maintainers: ["Forgelet Contributors"],
+      maintainers: ["WorkersUnite Contributors"],
       licenses: ["MIT"],
       links: %{
         "GitHub" => @source_url,
@@ -46,7 +46,7 @@ defmodule Forgelet.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Forgelet.Application, []},
+      mod: {WorkersUnite.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
@@ -93,12 +93,14 @@ defmodule Forgelet.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      # Forgelet domain deps
+      # WorkersUnite domain deps
       {:horde, "~> 0.9"},
       {:delta_crdt, "~> 0.6"},
       {:libcluster, "~> 3.4"},
       # Documentation
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      # Dev tooling
+      {:tidewave, "~> 0.5", only: :dev}
     ]
   end
 
@@ -115,10 +117,10 @@ defmodule Forgelet.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind forgelet", "esbuild forgelet"],
+      "assets.build": ["compile", "tailwind workers_unite", "esbuild workers_unite"],
       "assets.deploy": [
-        "tailwind forgelet --minify",
-        "esbuild forgelet --minify",
+        "tailwind workers_unite --minify",
+        "esbuild workers_unite --minify",
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]

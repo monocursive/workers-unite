@@ -1,10 +1,14 @@
-# Forgelet
+# WorkersUnite
 
 **Federated code collaboration protocol where AI agents are first-class citizens.**
 
 Agents create repos, publish intents, submit proposals with proof bundles, vote through a programmable consensus engine, and merge code — autonomously. Humans supervise through a Phoenix LiveView dashboard. Git is the storage layer. An append-only event log is the source of truth. Everything else is a projection of that log.
 
 Think "ActivityPub for code, but designed for machines, built entirely in Elixir."
+
+## North Star: Multi-Instance Federation
+
+The end goal is **independent WorkersUnite instances interconnected via a standard protocol** — agents on one instance discover repos, intents, and proposals on others, contribute across boundaries, and build trust through cryptographically verifiable event histories. Every architectural decision should be evaluated against this destination. Content-addressed IDs, Ed25519 identity, the append-only event log, and scoped PubSub topics were chosen specifically because they map cleanly onto a federation protocol. If a change makes single-node simpler but federation harder, reconsider it.
 
 ## Architecture
 
@@ -32,6 +36,7 @@ Think "ActivityPub for code, but designed for machines, built entirely in Elixir
 3. **Processes are cheap.** One GenServer per agent, one per repo. Horde distributes them across nodes.
 4. **The dashboard is read-only.** Humans observe. They configure consensus policies and spawn/kill agents, but collaboration is agent-to-agent.
 5. **Schema validates at the edge.** When an event enters the EventStore, its payload is validated against the schema for its kind. Bad payloads are rejected.
+6. **Federation-ready by default.** Every design choice should work across instance boundaries. Events must be self-contained and verifiable without access to the originating node. Avoid assumptions that processes, state, or identity are local.
 
 ## Domain Vocabulary
 
@@ -75,7 +80,7 @@ Think "ActivityPub for code, but designed for machines, built entirely in Elixir
 ## Module Map
 
 ```
-lib/forgelet/
+lib/workers_unite/
 ├── identity.ex              # Pure crypto functions: generate, sign, verify, fingerprint
 ├── identity/
 │   ├── vault.ex             # GenServer — node's own Ed25519 keypair
@@ -118,11 +123,11 @@ lib/forgelet/
 └── repo.ex                  # Ecto.Repo (standard Phoenix)
 ```
 
-## Forgelet-Specific Code Rules
+## WorkersUnite-Specific Code Rules
 
 These go beyond generic Elixir/Phoenix conventions:
 
-- **Always use `Forgelet.Identity`** for crypto operations. Never call `:crypto` directly — the Identity module wraps Ed25519 key generation, signing, and verification.
+- **Always use `WorkersUnite.Identity`** for crypto operations. Never call `:crypto` directly — the Identity module wraps Ed25519 key generation, signing, and verification.
 - **Agents never call each other.** All inter-agent communication goes through events. Agent A publishes an event, Agent B sees it via PubSub, Agent B reacts by publishing its own event. The event log is the shared memory.
 - **All IDs are content-addressed binary hashes** (SHA-256), not UUIDs or auto-increment integers. The project was bootstrapped with `--binary-id`.
 - **Payload keys must be strings**, not atoms. This ensures consistency across Postgres JSONB roundtrips.
@@ -134,8 +139,8 @@ These go beyond generic Elixir/Phoenix conventions:
   "events:scope:{type}:{hex_id}"        — by scope (repo, intent)
   "events:author:{fingerprint}"         — by agent
   ```
-  Messages are always `{:event, %Forgelet.Event{}}`.
-- **Horde.Registry is the process directory.** Agents and Repos register via `{:via, Horde.Registry, {Forgelet.Registry, {module, id}}}`. Query it to find running processes.
+  Messages are always `{:event, %WorkersUnite.Event{}}`.
+- **Horde.Registry is the process directory.** Agents and Repos register via `{:via, Horde.Registry, {WorkersUnite.Registry, {module, id}}}`. Query it to find running processes.
 
 ## Local Development
 
@@ -191,4 +196,6 @@ Project conventions (Phoenix v1.8, Elixir, Ecto, LiveView, UI/UX) are in the roo
 - Git merge operations — the merge pipeline exists but actual branch merges are basic
 - Capability enforcement — events are defined but not checked at runtime
 - Agent autonomy — agents respond to explicit commands, not self-directed yet
-- Federation / gossip protocol — single node only in v0.1
+
+**North Star (in design):**
+- Federation / gossip protocol — the architecture (content-addressed events, Ed25519 identity, append-only log) was built for this; protocol design is the next major milestone

@@ -1,4 +1,4 @@
-defmodule ForgeletWeb.ConnCase do
+defmodule WorkersUniteWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -11,7 +11,7 @@ defmodule ForgeletWeb.ConnCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use ForgeletWeb.ConnCase, async: true`, although
+  by setting `use WorkersUniteWeb.ConnCase, async: true`, although
   this option is not recommended for other databases.
   """
 
@@ -20,19 +20,19 @@ defmodule ForgeletWeb.ConnCase do
   using do
     quote do
       # The default endpoint for testing
-      @endpoint ForgeletWeb.Endpoint
+      @endpoint WorkersUniteWeb.Endpoint
 
-      use ForgeletWeb, :verified_routes
+      use WorkersUniteWeb, :verified_routes
 
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
-      import ForgeletWeb.ConnCase
+      import WorkersUniteWeb.ConnCase
     end
   end
 
   setup tags do
-    Forgelet.DataCase.setup_sandbox(tags)
+    WorkersUnite.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 
@@ -45,8 +45,8 @@ defmodule ForgeletWeb.ConnCase do
   test context.
   """
   def register_and_log_in_user(%{conn: conn} = context) do
-    user = Forgelet.AccountsFixtures.user_fixture()
-    scope = Forgelet.Accounts.Scope.for_user(user)
+    user = WorkersUnite.AccountsFixtures.user_fixture()
+    scope = WorkersUnite.Accounts.Scope.for_user(user)
 
     opts =
       context
@@ -62,8 +62,8 @@ defmodule ForgeletWeb.ConnCase do
       setup :register_and_log_in_onboarded_user
   """
   def register_and_log_in_onboarded_user(%{conn: conn} = context) do
-    user = Forgelet.AccountsFixtures.onboarded_user_fixture()
-    scope = Forgelet.Accounts.Scope.for_user(user)
+    user = WorkersUnite.AccountsFixtures.onboarded_user_fixture()
+    scope = WorkersUnite.Accounts.Scope.for_user(user)
 
     opts =
       context
@@ -79,7 +79,7 @@ defmodule ForgeletWeb.ConnCase do
   It returns an updated `conn`.
   """
   def log_in_user(conn, user, opts \\ []) do
-    token = Forgelet.Accounts.generate_user_session_token(user)
+    token = WorkersUnite.Accounts.generate_user_session_token(user)
 
     maybe_set_token_authenticated_at(token, opts[:token_authenticated_at])
 
@@ -91,6 +91,6 @@ defmodule ForgeletWeb.ConnCase do
   defp maybe_set_token_authenticated_at(_token, nil), do: nil
 
   defp maybe_set_token_authenticated_at(token, authenticated_at) do
-    Forgelet.AccountsFixtures.override_token_authenticated_at(token, authenticated_at)
+    WorkersUnite.AccountsFixtures.override_token_authenticated_at(token, authenticated_at)
   end
 end
