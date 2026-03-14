@@ -18,6 +18,7 @@ defmodule Forgelet.Agent.SystemPrompt do
         Always begin by calling forgelet_prepare_workspace for the active task repository.
         Submit proposals with a reproducible artifact from forgelet_publish_artifact.
         Use tests before proposal submission when practical.
+        Runtime credentials are not part of your task context and must never be requested or exposed.
         Workspace root: #{workspace_root || "unknown"}
         #{coder_context(task_context)}
         """
@@ -29,6 +30,7 @@ defmodule Forgelet.Agent.SystemPrompt do
 
         Use Forgelet MCP tools for proposal discovery, diff retrieval, comments, and votes.
         Sessions can operate across repositories; always resolve repository context explicitly.
+        Runtime credentials are not part of your task context and must never be requested or exposed.
         """
 
       :orchestrator ->
@@ -38,6 +40,7 @@ defmodule Forgelet.Agent.SystemPrompt do
 
         Use Forgelet MCP tools to coordinate work across repositories.
         Publish focused intents, monitor progress, and inspect consensus status.
+        Runtime credentials are not part of your task context and must never be requested or exposed.
         """
     end
   end

@@ -23,6 +23,43 @@ end
 config :forgelet, ForgeletWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+if config_env() != :test do
+  config :forgelet,
+    runtime_registry: %{
+      claude_code: %{
+        adapter: Forgelet.Agent.Runtime.ClaudeCode,
+        credentials: %{"ANTHROPIC_API_KEY" => {:system, "ANTHROPIC_API_KEY"}},
+        models: %{
+          fast_coder: %{id: "claude-sonnet-4-6"},
+          fast_reviewer: %{id: "claude-sonnet-4-6"},
+          deep_orchestrator: %{id: "claude-opus-4-6"}
+        },
+        native_tools: %{
+          coder: ["Read", "Write", "Edit", "Glob", "Grep"],
+          reviewer: ["Read", "Glob", "Grep"],
+          orchestrator: ["Read", "Glob", "Grep"]
+        }
+      },
+      codex: %{
+        adapter: Forgelet.Agent.Runtime.Codex,
+        credentials: %{"OPENAI_API_KEY" => {:system, "OPENAI_API_KEY"}},
+        models: %{
+          coder: %{id: "codex-latest"}
+        },
+        native_tools: %{
+          coder: ["Read", "Write", "Edit", "Glob", "Grep"],
+          reviewer: ["Read", "Glob", "Grep"],
+          orchestrator: ["Read", "Glob", "Grep"]
+        }
+      }
+    },
+    agent_profiles: %{
+      coder: %{runtime: :claude_code, model: :fast_coder},
+      reviewer: %{runtime: :claude_code, model: :fast_reviewer},
+      orchestrator: %{runtime: :claude_code, model: :deep_orchestrator}
+    }
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

@@ -45,6 +45,39 @@ config :forgelet,
   repo_base_path: Path.expand("../tmp/test_repos", __DIR__),
   default_consensus_policy: {:threshold, 2, 0.7},
   claude_cli_path: Path.expand("../test/support/mock_claude.sh", __DIR__),
+  runtime_registry: %{
+    claude_code: %{
+      adapter: Forgelet.Agent.Runtime.ClaudeCode,
+      credentials: %{},
+      models: %{
+        fast_coder: %{id: "claude-sonnet-4-6"},
+        fast_reviewer: %{id: "claude-sonnet-4-6"},
+        deep_orchestrator: %{id: "claude-opus-4-6"}
+      },
+      native_tools: %{
+        coder: ["Read", "Write", "Edit", "Glob", "Grep"],
+        reviewer: ["Read", "Glob", "Grep"],
+        orchestrator: ["Read", "Glob", "Grep"]
+      }
+    },
+    codex: %{
+      adapter: Forgelet.Agent.Runtime.Codex,
+      credentials: %{},
+      models: %{
+        coder: %{id: "codex-latest"}
+      },
+      native_tools: %{
+        coder: ["Read", "Write", "Edit", "Glob", "Grep"],
+        reviewer: ["Read", "Glob", "Grep"],
+        orchestrator: ["Read", "Glob", "Grep"]
+      }
+    }
+  },
+  agent_profiles: %{
+    coder: %{runtime: :claude_code, model: :fast_coder},
+    reviewer: %{runtime: :claude_code, model: :fast_reviewer},
+    orchestrator: %{runtime: :claude_code, model: :deep_orchestrator}
+  },
   session_workspace_base: Path.expand("../tmp/test_sessions", __DIR__),
   default_test_command: ["sh", "-lc", "exit 0"],
   mcp_public_base_url: "http://localhost:4002"

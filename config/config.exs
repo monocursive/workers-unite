@@ -14,6 +14,39 @@ config :forgelet,
   bootstrap_peers: [],
   default_consensus_policy: {:threshold, 2, 0.7},
   claude_cli_path: System.get_env("CLAUDE_CLI_PATH", "claude"),
+  runtime_registry: %{
+    claude_code: %{
+      adapter: Forgelet.Agent.Runtime.ClaudeCode,
+      credentials: %{},
+      models: %{
+        fast_coder: %{id: "claude-sonnet-4-6"},
+        fast_reviewer: %{id: "claude-sonnet-4-6"},
+        deep_orchestrator: %{id: "claude-opus-4-6"}
+      },
+      native_tools: %{
+        coder: ["Read", "Write", "Edit", "Glob", "Grep"],
+        reviewer: ["Read", "Glob", "Grep"],
+        orchestrator: ["Read", "Glob", "Grep"]
+      }
+    },
+    codex: %{
+      adapter: Forgelet.Agent.Runtime.Codex,
+      credentials: %{},
+      models: %{
+        coder: %{id: "codex-latest"}
+      },
+      native_tools: %{
+        coder: ["Read", "Write", "Edit", "Glob", "Grep"],
+        reviewer: ["Read", "Glob", "Grep"],
+        orchestrator: ["Read", "Glob", "Grep"]
+      }
+    }
+  },
+  agent_profiles: %{
+    coder: %{runtime: :claude_code, model: :fast_coder},
+    reviewer: %{runtime: :claude_code, model: :fast_reviewer},
+    orchestrator: %{runtime: :claude_code, model: :deep_orchestrator}
+  },
   agent_models: %{
     coder: "claude-sonnet-4-6",
     reviewer: "claude-sonnet-4-6",
