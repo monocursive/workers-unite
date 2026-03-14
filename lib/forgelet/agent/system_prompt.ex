@@ -3,6 +3,7 @@ defmodule Forgelet.Agent.SystemPrompt do
   Builds system prompts for Claude Code sessions by agent kind.
   """
 
+  require Logger
   alias Forgelet.Identity
 
   def build(kind, agent_id, task_context \\ nil, workspace_root \\ nil) do
@@ -34,6 +35,8 @@ defmodule Forgelet.Agent.SystemPrompt do
         """
 
       :orchestrator ->
+        personality = get_personality()
+
         """
         You are an orchestrator agent in the Forgelet network.
         Identity: #{fingerprint}
@@ -41,8 +44,21 @@ defmodule Forgelet.Agent.SystemPrompt do
         Use Forgelet MCP tools to coordinate work across repositories.
         Publish focused intents, monitor progress, and inspect consensus status.
         Runtime credentials are not part of your task context and must never be requested or exposed.
+        #{personality}
         """
     end
+  end
+
+  defp get_personality do
+    case Forgelet.Settings.get_personality() do
+      nil -> ""
+      "" -> ""
+      text -> "\nOperator directives:\n#{text}\n"
+    end
+  rescue
+    e ->
+      Logger.warning("Failed to load personality directives: #{inspect(e)}")
+      ""
   end
 
   defp coder_context(nil), do: "No active task context was provided."

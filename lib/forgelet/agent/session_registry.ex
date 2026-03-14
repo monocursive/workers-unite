@@ -12,8 +12,8 @@ defmodule Forgelet.Agent.SessionRegistry do
     GenServer.start_link(__MODULE__, %{}, name: name)
   end
 
-  def create(agent_id, kind, working_dir) do
-    GenServer.call(__MODULE__, {:create, agent_id, kind, working_dir})
+  def create(agent_id, kind, working_dir, owner_user_id \\ nil) do
+    GenServer.call(__MODULE__, {:create, agent_id, kind, working_dir, owner_user_id})
   end
 
   def lookup(token) do
@@ -32,6 +32,11 @@ defmodule Forgelet.Agent.SessionRegistry do
     |> Enum.map(fn {token, data} -> Map.put(data, :token, token) end)
   end
 
+  def list_for_user(user_id) do
+    list_active()
+    |> Enum.filter(fn session -> session[:owner_user_id] == user_id end)
+  end
+
   @impl true
   def init(_state) do
     :ets.new(@table, [:named_table, :set, :public, read_concurrency: true])
@@ -39,13 +44,14 @@ defmodule Forgelet.Agent.SessionRegistry do
   end
 
   @impl true
-  def handle_call({:create, agent_id, kind, working_dir}, _from, state) do
+  def handle_call({:create, agent_id, kind, working_dir, owner_user_id}, _from, state) do
     token = :crypto.strong_rand_bytes(32) |> Base.encode16(case: :lower)
 
     session = %{
       agent_id: agent_id,
       kind: kind,
       working_dir: working_dir,
+      owner_user_id: owner_user_id,
       created_at: System.system_time(:millisecond)
     }
 

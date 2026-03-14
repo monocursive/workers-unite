@@ -6,9 +6,13 @@ defmodule Forgelet.CredentialStore do
   this process. They are never exposed through application state, events, or
   prompts. Runtime adapters resolve only the environment variables they need
   immediately before launching an external process.
+
+  On init, DB-stored credentials (via `Forgelet.Credentials`) take precedence
+  over env vars when both exist. Call `reload/0` to re-read from DB.
   """
 
   use GenServer
+  require Logger
 
   @table :forgelet_credentials
 
@@ -32,19 +36,18 @@ defmodule Forgelet.CredentialStore do
     GenServer.call(name, {:runtime_metadata, runtime_name})
   end
 
+  @doc """
+  Reload credentials from DB, merging over env-var defaults.
+  """
+  def reload(opts \\ []) do
+    name = Keyword.get(opts, :name, __MODULE__)
+    GenServer.call(name, :reload)
+  end
+
   @impl true
   def init(%{runtime_registry: registry}) do
     table = :ets.new(@table, [:set, :private])
-
-    Enum.each(registry, fn {runtime_name, runtime_config} ->
-      credentials =
-        runtime_config
-        |> Map.get(:credentials, %{})
-        |> resolve_credentials()
-
-      true = :ets.insert(table, {runtime_name, credentials})
-    end)
-
+    load_all(table, registry)
     {:ok, %{table: table, runtime_registry: registry}}
   end
 
@@ -85,6 +88,55 @@ defmodule Forgelet.CredentialStore do
       end)
 
     {:reply, metadata, state}
+  end
+
+  def handle_call(:reload, _from, state) do
+    load_all(state.table, state.runtime_registry)
+    {:reply, :ok, state}
+  end
+
+  defp load_all(table, registry) do
+    Enum.each(registry, fn {runtime_name, runtime_config} ->
+      env_credentials =
+        runtime_config
+        |> Map.get(:credentials, %{})
+        |> resolve_credentials()
+
+      db_credentials = load_db_credentials(runtime_name)
+
+      merged = Map.merge(env_credentials, db_credentials)
+      true = :ets.insert(table, {runtime_name, merged})
+    end)
+  end
+
+  defp load_db_credentials(runtime_name) do
+    if repo_available?() do
+      try do
+        Forgelet.Credentials.all_decrypted_for_provider(runtime_name)
+      rescue
+        e ->
+          Logger.warning("Failed to load DB credentials for #{runtime_name}: #{inspect(e)}")
+          %{}
+      catch
+        kind, reason ->
+          Logger.warning(
+            "Failed to load DB credentials for #{runtime_name}: #{inspect(kind)} #{inspect(reason)}"
+          )
+
+          %{}
+      end
+    else
+      %{}
+    end
+  end
+
+  defp repo_available? do
+    try do
+      Forgelet.Repo.__adapter__()
+      Process.whereis(Forgelet.Repo) != nil
+    rescue
+      _ -> false
+    end
   end
 
   defp resolve_credentials(credentials) do

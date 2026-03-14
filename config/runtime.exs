@@ -23,6 +23,10 @@ end
 config :forgelet, ForgeletWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+if encryption_key = System.get_env("CREDENTIAL_ENCRYPTION_KEY") do
+  config :forgelet, credential_encryption_key: Base.decode64!(encryption_key)
+end
+
 if config_env() != :test do
   config :forgelet,
     runtime_registry: %{

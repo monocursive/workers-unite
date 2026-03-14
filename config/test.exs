@@ -1,5 +1,8 @@
 import Config
 
+# Only in tests, remove the complexity from the password hashing algorithm
+config :bcrypt_elixir, :log_rounds, 1
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used
@@ -80,4 +83,5 @@ config :forgelet,
   },
   session_workspace_base: Path.expand("../tmp/test_sessions", __DIR__),
   default_test_command: ["sh", "-lc", "exit 0"],
-  mcp_public_base_url: "http://localhost:4002"
+  mcp_public_base_url: "http://localhost:4002",
+  credential_encryption_key: :crypto.strong_rand_bytes(32)
