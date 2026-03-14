@@ -44,7 +44,7 @@ defmodule Forgelet.Consensus.Engine do
 
   @impl true
   def handle_info({:event, %{kind: :vote_cast} = event}, state) do
-    proposal_ref = event.payload["proposal_ref"] || event.payload[:proposal_ref]
+    proposal_ref = event.payload["proposal_ref"]
 
     if proposal_ref do
       case do_evaluate(proposal_ref, state) do
@@ -65,20 +65,23 @@ defmodule Forgelet.Consensus.Engine do
     votes =
       EventStore.by_kind(:vote_cast)
       |> Enum.filter(fn e ->
-        ref = e.payload["proposal_ref"] || e.payload[:proposal_ref]
+        ref = e.payload["proposal_ref"]
         ref == proposal_ref
       end)
       |> Enum.map(fn e ->
-        verdict_raw = e.payload["verdict"] || e.payload[:verdict]
+        verdict_raw = e.payload["verdict"]
 
         verdict =
           case verdict_raw do
-            v when is_atom(v) -> v
-            v when is_binary(v) -> String.to_existing_atom(v)
+            v when v in [:accept, :reject, :abstain] -> v
+            "accept" -> :accept
+            "reject" -> :reject
+            "abstain" -> :abstain
+            other -> raise "Unknown verdict: #{inspect(other)}"
           end
 
         weight =
-          case e.payload["weight"] || e.payload[:weight] do
+          case e.payload["weight"] do
             nil -> 1.0
             w -> w
           end

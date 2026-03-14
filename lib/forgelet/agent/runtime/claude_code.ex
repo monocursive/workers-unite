@@ -125,6 +125,8 @@ defmodule Forgelet.Agent.Runtime.ClaudeCode do
     {:stop, {:shutdown, :timed_out}, %{state | status: :timed_out}}
   end
 
+  def handle_info(_msg, state), do: {:noreply, state}
+
   @impl true
   def terminate(reason, state) do
     if state.timeout_ref, do: Process.cancel_timer(state.timeout_ref)

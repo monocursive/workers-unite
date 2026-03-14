@@ -32,6 +32,9 @@ defmodule Forgelet.Control.Reporter do
     {:reply, report, state}
   end
 
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
+
   defp summarize(schema) do
     Repo.all(from record in schema, select: record.status)
     |> Enum.frequencies()

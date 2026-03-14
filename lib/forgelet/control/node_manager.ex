@@ -43,4 +43,7 @@ defmodule Forgelet.Control.NodeManager do
 
     {:reply, result, state}
   end
+
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
 end

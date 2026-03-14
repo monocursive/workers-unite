@@ -39,6 +39,9 @@ defmodule Forgelet.Agent.SessionRegistry do
 
   @impl true
   def init(_state) do
+    # Table is :public so lookup/1 and list_active/0 can read directly from ETS
+    # without going through the GenServer, which is important for MCP request
+    # authentication latency. Writes still go through GenServer calls.
     :ets.new(@table, [:named_table, :set, :public, read_concurrency: true])
     {:ok, %{}}
   end
@@ -63,4 +66,7 @@ defmodule Forgelet.Agent.SessionRegistry do
     :ets.delete(@table, token)
     {:reply, :ok, state}
   end
+
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
 end

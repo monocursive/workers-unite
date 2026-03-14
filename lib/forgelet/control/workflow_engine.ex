@@ -46,4 +46,7 @@ defmodule Forgelet.Control.WorkflowEngine do
   def handle_call(:active_workflows, _from, state) do
     {:reply, MapSet.to_list(state.workflows), state}
   end
+
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
 end

@@ -274,6 +274,8 @@ defmodule Forgelet.Agent do
     {:noreply, state}
   end
 
+  def handle_info(_msg, state), do: {:noreply, state}
+
   @impl true
   def handle_call({:claim_intent_legacy, intent_ref, scope}, _from, state) do
     repo_id =

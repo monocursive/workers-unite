@@ -38,4 +38,7 @@ defmodule Forgelet.Control.JobScheduler do
   def handle_call(:queued_jobs, _from, state) do
     {:reply, MapSet.to_list(state.queued_jobs), state}
   end
+
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
 end

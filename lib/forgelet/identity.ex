@@ -31,7 +31,7 @@ defmodule Forgelet.Identity do
   end
 
   @doc """
-  Computes a 16-character hex fingerprint of a public key using Blake3.
+  Computes a 16-character hex fingerprint of a public key using SHA-256.
   """
   def fingerprint(public_key) when is_binary(public_key) do
     :crypto.hash(:sha256, public_key)

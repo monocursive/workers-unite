@@ -62,4 +62,7 @@ defmodule Forgelet.Control.Master do
         {:reply, error, state}
     end
   end
+
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
 end

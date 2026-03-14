@@ -95,6 +95,9 @@ defmodule Forgelet.CredentialStore do
     {:reply, :ok, state}
   end
 
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
+
   defp load_all(table, registry) do
     Enum.each(registry, fn {runtime_name, runtime_config} ->
       env_credentials =

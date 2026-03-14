@@ -245,6 +245,7 @@ defmodule Forgelet.Repository do
   end
 
   def handle_info({:event, _}, state), do: {:noreply, state}
+  def handle_info(_msg, state), do: {:noreply, state}
 
   @impl true
   def handle_call(:get_state, _from, state) do

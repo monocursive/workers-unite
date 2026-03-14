@@ -38,4 +38,6 @@ defmodule Forgelet.Agent.Runtime.Local do
     send(owner_pid, {:session_ended, self(), :completed, output})
     {:stop, :normal, state}
   end
+
+  def handle_info(_msg, state), do: {:noreply, state}
 end

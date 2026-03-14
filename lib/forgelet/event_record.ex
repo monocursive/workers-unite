@@ -69,10 +69,24 @@ defmodule Forgelet.EventRecord do
     }
   end
 
+  @known_atoms ~w(
+    agent_joined agent_left agent_provenance
+    intent_published intent_claimed intent_decomposed intent_contested
+    intent_withdrawn intent_updated intent_cancelled
+    proposal_submitted proposal_revised proposal_updated proposal_withdrawn
+    validation_requested validation_result
+    vote_cast consensus_reached consensus_failed
+    merge_executed merge_rejected
+    capability_granted capability_revoked
+    repo_created repo_ref_updated
+    session_completed session_failed
+    comment_added annotation_added
+    repo intent proposal agent
+  )a
+
   defp safe_to_atom(str) when is_binary(str) do
-    String.to_existing_atom(str)
-  rescue
-    ArgumentError -> String.to_atom(str)
+    Enum.find(@known_atoms, fn atom -> Atom.to_string(atom) == str end) ||
+      raise ArgumentError, "unknown atom from DB: #{inspect(str)}"
   end
 
   defp parse_scope(nil), do: {nil, nil}

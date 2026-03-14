@@ -67,4 +67,7 @@ defmodule Forgelet.Identity.Vault do
   def handle_call(:fingerprint, _from, %{keypair: %{public: pub}} = state) do
     {:reply, Forgelet.Identity.fingerprint(pub), state}
   end
+
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
 end

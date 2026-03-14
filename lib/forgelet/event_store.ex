@@ -94,6 +94,9 @@ defmodule Forgelet.EventStore do
   end
 
   @impl true
+  def handle_info(_msg, state), do: {:noreply, state}
+
+  @impl true
   def handle_call({:append, event}, _from, state) do
     case validate_and_store(event, state.table) do
       {:ok, event} -> {:reply, {:ok, event}, state}
@@ -178,10 +181,15 @@ defmodule Forgelet.EventStore do
     end
   end
 
+  @max_bootstrap_events 10_000
+
+  # Loads up to @max_bootstrap_events from Postgres into ETS on startup.
+  # Events beyond this limit are not loaded — they remain in Postgres
+  # and can be queried directly via EventRecord.
   defp load_from_postgres(table) do
     import Ecto.Query
 
-    Repo.all(from(e in EventRecord, order_by: [asc: e.timestamp], limit: 10_000))
+    Repo.all(from(e in EventRecord, order_by: [asc: e.timestamp], limit: @max_bootstrap_events))
     |> Enum.each(fn record ->
       event = EventRecord.from_record(record)
       :ets.insert(table, {event.id, event})
@@ -189,6 +197,6 @@ defmodule Forgelet.EventStore do
   rescue
     e ->
       require Logger
-      Logger.warning("EventStore: could not load from Postgres: #{inspect(e)}")
+      Logger.error("EventStore: could not load from Postgres: #{inspect(e)}")
   end
 end

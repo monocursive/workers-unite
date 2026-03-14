@@ -87,7 +87,7 @@ defmodule Forgelet.Accounts do
   @first_user_advisory_lock 736_501
   def register_first_user(attrs) do
     Repo.transact(fn ->
-      Repo.query!("SELECT pg_advisory_xact_lock(#{@first_user_advisory_lock})")
+      Repo.query!("SELECT pg_advisory_xact_lock($1)", [@first_user_advisory_lock])
 
       if Repo.exists?(User) do
         {:error, :registration_closed}
