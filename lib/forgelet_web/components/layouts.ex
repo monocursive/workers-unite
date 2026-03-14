@@ -46,6 +46,13 @@ defmodule ForgeletWeb.Layouts do
           <a href={~p"/agents"} class="btn btn-ghost btn-sm">Agents</a>
           <a href={~p"/repos"} class="btn btn-ghost btn-sm">Repos</a>
           <a href={~p"/consensus"} class="btn btn-ghost btn-sm">Consensus</a>
+          <a
+            :if={@current_scope && @current_scope.user && @current_scope.user.role == "admin"}
+            href={~p"/settings"}
+            class="btn btn-ghost btn-sm"
+          >
+            Settings
+          </a>
         </nav>
       </div>
       <div class="flex-none">

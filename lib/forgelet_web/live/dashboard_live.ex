@@ -38,7 +38,7 @@ defmodule ForgeletWeb.DashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="space-y-8">
         <h1 class="text-2xl font-bold">Mission Control</h1>
 

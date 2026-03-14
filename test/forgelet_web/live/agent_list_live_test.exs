@@ -3,6 +3,8 @@ defmodule ForgeletWeb.AgentListLiveTest do
 
   import Phoenix.LiveViewTest
 
+  setup :register_and_log_in_onboarded_user
+
   test "renders agent list", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/agents")
 

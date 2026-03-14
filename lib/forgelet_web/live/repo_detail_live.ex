@@ -64,7 +64,7 @@ defmodule ForgeletWeb.RepoDetailLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="space-y-6">
         <div class="flex items-center gap-4">
           <a href={~p"/repos"} class="btn btn-ghost btn-sm">Back</a>

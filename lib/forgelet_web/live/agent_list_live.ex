@@ -28,7 +28,7 @@ defmodule ForgeletWeb.AgentListLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="space-y-6">
         <h1 class="text-2xl font-bold">Agents</h1>
 

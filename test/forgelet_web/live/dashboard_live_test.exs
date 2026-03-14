@@ -3,6 +3,8 @@ defmodule ForgeletWeb.DashboardLiveTest do
 
   import Phoenix.LiveViewTest
 
+  setup :register_and_log_in_onboarded_user
+
   test "renders dashboard with stats", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/")
 

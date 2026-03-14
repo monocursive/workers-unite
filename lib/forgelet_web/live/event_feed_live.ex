@@ -45,7 +45,7 @@ defmodule ForgeletWeb.EventFeedLive do
     assigns = assign(assigns, :filtered_events, filtered_events(assigns))
 
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="space-y-6">
         <h1 class="text-2xl font-bold">Event Feed</h1>
 
