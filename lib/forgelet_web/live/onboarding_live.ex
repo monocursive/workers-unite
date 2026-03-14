@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.OnboardingLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  First-run onboarding wizard that guides the admin through creating an account,
+  configuring API credentials, setting the orchestrator personality, and completing setup.
+  """
+
   alias Forgelet.{Accounts, Credentials, Settings}
 
   @impl true

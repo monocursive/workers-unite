@@ -1,4 +1,9 @@
 defmodule ForgeletWeb.UserAuth do
+  @moduledoc """
+  Plug-based authentication helpers and LiveView `on_mount` callbacks for session management,
+  login/logout, sudo mode, and onboarding guards.
+  """
+
   use ForgeletWeb, :verified_routes
 
   import Plug.Conn

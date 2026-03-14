@@ -1,4 +1,8 @@
 defmodule Forgelet.Accounts.UserNotifier do
+  @moduledoc """
+  Delivers transactional emails for login, confirmation, and email-change flows.
+  """
+
   import Swoosh.Email
 
   alias Forgelet.Mailer

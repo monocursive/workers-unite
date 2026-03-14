@@ -1,4 +1,8 @@
 defmodule Forgelet.Accounts.User do
+  @moduledoc """
+  User schema with email/password authentication, role assignment, and onboarding tracking.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

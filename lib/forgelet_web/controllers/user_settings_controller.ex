@@ -1,4 +1,5 @@
 defmodule ForgeletWeb.UserSettingsController do
+  @moduledoc "Handles user account settings including email and password updates with sudo-mode protection."
   use ForgeletWeb, :controller
 
   alias Forgelet.Accounts

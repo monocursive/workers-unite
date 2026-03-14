@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.Settings.CredentialsLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Manages encrypted API credentials for AI runtime providers. Supports creating,
+  updating, and deleting credentials with live reload of the credential store.
+  """
+
   alias Forgelet.Credentials
 
   @impl true

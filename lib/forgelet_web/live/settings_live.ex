@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.SettingsLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Instance settings dashboard providing navigation to credential management
+  and orchestrator personality configuration, plus instance metadata.
+  """
+
   alias Forgelet.Settings
 
   @impl true

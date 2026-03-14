@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.RepoDetailLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Shows an individual repository's details including active intents, proposals,
+  participating agents, and a live-updating scoped event log.
+  """
+
   alias Forgelet.{Repository, EventStore, Identity}
 
   @impl true

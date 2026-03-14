@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.DashboardLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Main dashboard showing system overview with event, agent, and repository counts,
+  plus a live-updating feed of the 20 most recent events.
+  """
+
   alias Forgelet.{EventStore, Agent, Repository, Identity}
 
   @impl true

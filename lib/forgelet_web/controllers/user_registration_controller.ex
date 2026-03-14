@@ -1,4 +1,5 @@
 defmodule ForgeletWeb.UserRegistrationController do
+  @moduledoc "Handles first-user registration, rejecting signups once an admin account exists."
   use ForgeletWeb, :controller
 
   alias Forgelet.Accounts

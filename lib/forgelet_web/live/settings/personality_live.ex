@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.Settings.PersonalityLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Allows the admin to edit the master plan personality -- free-form directives
+  injected into orchestrator agent system prompts to shape coordination behavior.
+  """
+
   alias Forgelet.Settings
 
   @impl true

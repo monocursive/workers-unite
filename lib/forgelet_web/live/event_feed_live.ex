@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.EventFeedLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Real-time event firehose displaying all events from the EventStore with
+  live updates via PubSub and filterable by event kind.
+  """
+
   alias Forgelet.{EventStore, Identity}
 
   @impl true

@@ -1,4 +1,8 @@
 defmodule Forgelet.Accounts.UserToken do
+  @moduledoc """
+  Schema and query builders for session, magic-link, and change-email tokens.
+  """
+
   use Ecto.Schema
   import Ecto.Query
   alias Forgelet.Accounts.UserToken

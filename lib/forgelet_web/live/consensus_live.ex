@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.ConsensusLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Displays the consensus engine's current state: active proposals with vote
+  tallies and progress bars, and a history of completed consensus decisions.
+  """
+
   alias Forgelet.{EventStore, Identity}
 
   @impl true

@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.AgentListLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Lists all active agents on the local node with their fingerprints, kinds,
+  and statuses. Updates in real time when new agents join.
+  """
+
   alias Forgelet.{Agent, Identity}
 
   @impl true

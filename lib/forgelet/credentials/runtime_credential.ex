@@ -1,4 +1,8 @@
 defmodule Forgelet.Credentials.RuntimeCredential do
+  @moduledoc """
+  Ecto schema for provider credentials stored with AES-256-GCM encryption.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

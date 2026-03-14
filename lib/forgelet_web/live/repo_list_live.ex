@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.RepoListLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Lists all repositories on the local node with their names, agent counts,
+  and active intent counts. Updates live when new repositories are created.
+  """
+
   alias Forgelet.Repository
 
   @impl true

@@ -1,6 +1,11 @@
 defmodule ForgeletWeb.AgentDetailLive do
   use ForgeletWeb, :live_view
 
+  @moduledoc """
+  Shows an individual agent's identity, status, capabilities, provenance,
+  and a live-updating history of events authored by that agent.
+  """
+
   alias Forgelet.{Agent, EventStore, Identity}
 
   @impl true

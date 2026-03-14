@@ -1,4 +1,5 @@
 defmodule ForgeletWeb.UserSessionHTML do
+  @moduledoc false
   use ForgeletWeb, :html
 
   embed_templates "user_session_html/*"

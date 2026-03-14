@@ -1,4 +1,5 @@
 defmodule ForgeletWeb.UserSessionController do
+  @moduledoc "Handles user login (password and magic-link), session confirmation, onboarding login, and logout."
   use ForgeletWeb, :controller
 
   alias Forgelet.Accounts

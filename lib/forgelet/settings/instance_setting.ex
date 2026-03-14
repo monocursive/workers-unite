@@ -1,4 +1,8 @@
 defmodule Forgelet.Settings.InstanceSetting do
+  @moduledoc """
+  Singleton Ecto schema for instance-wide settings such as master-plan personality and onboarding state.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 
