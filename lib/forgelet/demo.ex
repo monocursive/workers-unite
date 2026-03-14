@@ -13,6 +13,10 @@ defmodule Forgelet.Demo do
   alias Forgelet.Agent.Workspace
 
   def run do
+    unless Application.get_env(:forgelet, :allow_demo, false) or Mix.env() in [:dev, :test] do
+      raise "Demo.run() is not allowed in production — set :allow_demo to true to override"
+    end
+
     IO.puts("\n=== Forgelet Demo ===\n")
 
     # 1. Create a repository
