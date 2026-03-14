@@ -22,9 +22,8 @@ defmodule WorkersUniteWeb.MCP.Tools.PrepareWorkspace do
 
   @impl true
   def call(%{"repo_id" => repo_id}, %{agent_id: agent_id, working_dir: working_dir}) do
-    repo_id_binary = Helpers.decode_repo_id(repo_id)
-
-    with {:ok, task} <- active_intent_task(agent_id, repo_id_binary),
+    with {:ok, repo_id_binary} <- Helpers.decode_repo_id(repo_id),
+         {:ok, task} <- active_intent_task(agent_id, repo_id_binary),
          {:ok, checkout} <-
            Workspace.prepare_task_checkout(working_dir, repo_id_binary, agent_id, task.ref) do
       {:ok,

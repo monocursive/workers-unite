@@ -19,21 +19,21 @@ defmodule WorkersUniteWeb.MCP.Tools.ListIntents do
 
   @impl true
   def call(%{"repo_id" => repo_id}, _context) do
-    repo_id_binary = Helpers.decode_repo_id(repo_id)
+    with {:ok, repo_id_binary} <- Helpers.decode_repo_id(repo_id) do
+      intents =
+        Repository.list_open_intents(repo_id_binary)
+        |> Enum.map(fn event ->
+          %{
+            ref: WorkersUnite.Event.ref(event),
+            title: event.payload["title"],
+            description: event.payload["description"],
+            priority: event.payload["priority"],
+            tags: event.payload["tags"] || []
+          }
+        end)
 
-    intents =
-      Repository.list_open_intents(repo_id_binary)
-      |> Enum.map(fn event ->
-        %{
-          ref: WorkersUnite.Event.ref(event),
-          title: event.payload["title"],
-          description: event.payload["description"],
-          priority: event.payload["priority"],
-          tags: event.payload["tags"] || []
-        }
-      end)
-
-    {:ok, intents}
+      {:ok, intents}
+    end
   catch
     :exit, _reason -> {:error, :repo_not_found}
   end

@@ -33,11 +33,12 @@ defmodule WorkersUniteWeb.MCP.Tools.SubmitProposal do
 
   @impl true
   def call(%{"repo_id" => repo_id} = params, %{agent_id: agent_id}) do
-    repo_id_binary = Helpers.decode_repo_id(repo_id)
-    payload = Map.put(params, "repo_id", Base.encode16(repo_id_binary, case: :lower))
+    with {:ok, repo_id_binary} <- Helpers.decode_repo_id(repo_id) do
+      payload = Map.put(params, "repo_id", Base.encode16(repo_id_binary, case: :lower))
 
-    with {:ok, event_ref} <- Agent.submit_proposal(agent_id, payload, {:repo, repo_id_binary}) do
-      {:ok, %{event_ref: event_ref}}
+      with {:ok, event_ref} <- Agent.submit_proposal(agent_id, payload, {:repo, repo_id_binary}) do
+        {:ok, %{event_ref: event_ref}}
+      end
     end
   end
 

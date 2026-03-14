@@ -25,14 +25,12 @@ defmodule WorkersUniteWeb.MCP.Tools.PublishIntent do
 
   @impl true
   def call(%{"repo_id" => repo_id} = params, %{agent_id: agent_id}) do
-    repo_id_binary = Helpers.decode_repo_id(repo_id)
+    with {:ok, repo_id_binary} <- Helpers.decode_repo_id(repo_id) do
+      payload = Map.drop(params, ["repo_id"])
 
-    payload =
-      params
-      |> Map.drop(["repo_id"])
-
-    with {:ok, event_ref} <- Agent.publish_intent(agent_id, repo_id_binary, payload) do
-      {:ok, %{event_ref: event_ref}}
+      with {:ok, event_ref} <- Agent.publish_intent(agent_id, repo_id_binary, payload) do
+        {:ok, %{event_ref: event_ref}}
+      end
     end
   end
 

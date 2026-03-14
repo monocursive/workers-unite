@@ -7,7 +7,7 @@ defmodule WorkersUniteWeb.PageControllerTest do
 
   test "GET / redirects to dashboard live view", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/")
-    assert html =~ "Mission Control"
+    assert html =~ "Instance Overview"
   end
 
   test "GET / redirects to login when unauthenticated" do

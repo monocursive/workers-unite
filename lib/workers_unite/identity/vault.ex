@@ -29,6 +29,11 @@ defmodule WorkersUnite.Identity.Vault do
     GenServer.call(server, {:sign, data})
   end
 
+  @doc "Returns the full keypair `%{public: <<...>>, secret: <<...>>}` for event signing."
+  def keypair(server \\ __MODULE__) do
+    GenServer.call(server, :keypair)
+  end
+
   @doc "Returns the 16-character hex fingerprint of the node's public key."
   def fingerprint(server \\ __MODULE__) do
     GenServer.call(server, :fingerprint)
@@ -61,6 +66,11 @@ defmodule WorkersUnite.Identity.Vault do
   @impl true
   def handle_call({:sign, data}, _from, %{keypair: %{secret: sec}} = state) do
     {:reply, WorkersUnite.Identity.sign(data, sec), state}
+  end
+
+  @impl true
+  def handle_call(:keypair, _from, %{keypair: keypair} = state) do
+    {:reply, keypair, state}
   end
 
   @impl true

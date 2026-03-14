@@ -33,6 +33,12 @@ defmodule WorkersUniteWeb.Router do
     post "/:token", Plug, []
   end
 
+  scope "/operator/mcp", WorkersUniteWeb.OperatorMCP do
+    pipe_through :api
+
+    match :*, "/*path", Plug, []
+  end
+
   # Unauthenticated health check for load balancers and container orchestrators
   scope "/", WorkersUniteWeb do
     pipe_through :api
@@ -62,6 +68,15 @@ defmodule WorkersUniteWeb.Router do
 
     post "/passkey-register/challenge", PasskeyController, :registration_challenge
     post "/passkey-register", PasskeyController, :register
+  end
+
+  # Operator token management (browser JSON, authenticated)
+  scope "/operator", WorkersUniteWeb do
+    pipe_through [:browser_json, :require_authenticated_user]
+
+    get "/tokens", OperatorTokenController, :index
+    post "/tokens", OperatorTokenController, :create
+    delete "/tokens/:id", OperatorTokenController, :delete
   end
 
   # Registration redirects to onboarding
@@ -124,6 +139,7 @@ defmodule WorkersUniteWeb.Router do
       live "/settings/model", Settings.ModelLive
       live "/settings/credentials", Settings.CredentialsLive
       live "/settings/personality", Settings.PersonalityLive
+      live "/settings/operator", Settings.OperatorLive
     end
 
     live_session :passkey_settings,

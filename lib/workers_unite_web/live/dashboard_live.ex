@@ -7,6 +7,7 @@ defmodule WorkersUniteWeb.DashboardLive do
   """
 
   alias WorkersUnite.{EventStore, Agent, Repository, Identity}
+  alias WorkersUnite.Agent.SessionRegistry
 
   @impl true
   def mount(_params, _session, socket) do
@@ -17,12 +18,24 @@ defmodule WorkersUniteWeb.DashboardLive do
     events = EventStore.stream()
     recent = events |> Enum.reverse() |> Enum.take(20)
 
+    session_count =
+      try do
+        length(SessionRegistry.list_active())
+      catch
+        _, _ -> 0
+      end
+
+    operator_mcp_enabled =
+      Application.get_env(:workers_unite, :operator_mcp_enabled, true)
+
     {:ok,
      assign(socket,
        page_title: "Dashboard",
        event_count: EventStore.count(),
        agent_count: length(Agent.list_local()),
        repo_count: length(Repository.list_local()),
+       session_count: session_count,
+       operator_mcp_enabled: operator_mcp_enabled,
        recent_events: recent
      )}
   end
@@ -45,9 +58,9 @@ defmodule WorkersUniteWeb.DashboardLive do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="space-y-8">
-        <h1 class="text-2xl font-bold">Mission Control</h1>
+        <h1 class="text-2xl font-bold">Instance Overview</h1>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <div class="card bg-base-200 p-6">
             <div class="text-sm opacity-70">Events</div>
             <div class="text-3xl font-bold">{@event_count}</div>
@@ -59,6 +72,21 @@ defmodule WorkersUniteWeb.DashboardLive do
           <div class="card bg-base-200 p-6">
             <div class="text-sm opacity-70">Repos</div>
             <div class="text-3xl font-bold">{@repo_count}</div>
+          </div>
+          <div class="card bg-base-200 p-6">
+            <div class="text-sm opacity-70">Active Sessions</div>
+            <div class="text-3xl font-bold">{@session_count}</div>
+          </div>
+          <div class="card bg-base-200 p-6">
+            <div class="text-sm opacity-70">Operator MCP</div>
+            <div class="mt-1">
+              <span class={[
+                "badge badge-sm",
+                if(@operator_mcp_enabled, do: "badge-success", else: "badge-error")
+              ]}>
+                {if @operator_mcp_enabled, do: "enabled", else: "disabled"}
+              </span>
+            </div>
           </div>
         </div>
 

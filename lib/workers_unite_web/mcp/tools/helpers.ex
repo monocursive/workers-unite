@@ -4,15 +4,26 @@ defmodule WorkersUniteWeb.MCP.Tools.Helpers do
   alias WorkersUnite.{Event, EventStore, Identity, Repository}
 
   def fetch_repo(repo_id) when is_binary(repo_id) do
-    {:ok, Repository.get_state(decode_repo_id(repo_id))}
+    with {:ok, binary_id} <- decode_repo_id(repo_id) do
+      {:ok, Repository.get_state(binary_id)}
+    end
   catch
     :exit, _reason -> {:error, :repo_not_found}
   end
 
   def decode_repo_id(repo_id) do
     case Base.decode16(repo_id, case: :mixed) do
-      {:ok, binary} -> binary
-      :error -> repo_id
+      {:ok, binary} -> {:ok, binary}
+      :error -> {:error, :invalid_repo_id}
+    end
+  end
+
+  def fetch_proposal(proposal_ref) do
+    case EventStore.get_by_ref(proposal_ref) do
+      {:ok, %{kind: :proposal_submitted} = event} -> {:ok, event}
+      {:ok, _} -> {:error, :proposal_not_found}
+      {:error, :not_found} -> {:error, :proposal_not_found}
+      {:error, :invalid_ref} -> {:error, :invalid_proposal_ref}
     end
   end
 

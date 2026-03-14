@@ -8,7 +8,7 @@ defmodule WorkersUniteWeb.DashboardLiveTest do
   test "renders dashboard with stats", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/")
 
-    assert html =~ "Mission Control"
+    assert html =~ "Instance Overview"
     assert html =~ "Events"
     assert html =~ "Agents"
     assert html =~ "Repos"

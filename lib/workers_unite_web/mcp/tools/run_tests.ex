@@ -23,9 +23,8 @@ defmodule WorkersUniteWeb.MCP.Tools.RunTests do
 
   @impl true
   def call(%{"repo_id" => repo_id} = params, %{working_dir: working_dir}) do
-    repo_id_binary = Helpers.decode_repo_id(repo_id)
-
-    with {:ok, repo_path} <- Workspace.ensure_repo_checkout(working_dir, repo_id_binary),
+    with {:ok, repo_id_binary} <- Helpers.decode_repo_id(repo_id),
+         {:ok, repo_path} <- Workspace.ensure_repo_checkout(working_dir, repo_id_binary),
          {:ok, argv} <- command_args(params) do
       {stdout, exit_code} = System.cmd(hd(argv), tl(argv), cd: repo_path, stderr_to_stdout: true)
       {:ok, %{exit_code: exit_code, stdout: stdout, stderr: ""}}

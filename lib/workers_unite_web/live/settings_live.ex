@@ -52,6 +52,15 @@ defmodule WorkersUniteWeb.SettingsLive do
             <h2 class="font-semibold text-lg">Orchestrator Personality</h2>
             <p class="text-sm opacity-70">Configure directives injected into orchestrator prompts.</p>
           </a>
+          <a
+            href={~p"/settings/operator"}
+            class="card bg-base-200 p-6 hover:bg-base-300 transition-colors space-y-2"
+          >
+            <h2 class="font-semibold text-lg">Operator Tokens</h2>
+            <p class="text-sm opacity-70">
+              Manage MCP access tokens for external operator apps like OpenCode.
+            </p>
+          </a>
         </div>
 
         <div class="card bg-base-200 p-6 space-y-2">
